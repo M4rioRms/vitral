@@ -278,7 +278,8 @@
 <div class="overlay" id="overlay">
   <div class="ov-inner">
     <img id="ovImg" alt="Tarjeta generada">
-    <button type="button" id="ovDl">Descargar PNG</button>
+    <button type="button" id="ovShare" hidden>Guardar en Fotos</button>
+    <a id="ovDl" class="as-btn" download="vitral.png">Descargar PNG</a>
     <p class="ov-tip" id="ovTip">En el móvil también puedes mantener pulsada la imagen para guardarla.</p>
     <button type="button" id="ovClose" class="ghost">Cerrar</button>
   </div>
@@ -1135,11 +1136,9 @@ dlBtn.addEventListener('click',function(){
   dlBtn.disabled=true;
   var go=function(){
     try{
-      var r=draw();
+      var r=draw(),dataUrl=r.canvas.toDataURL('image/png');
       r.canvas.toBlob(function(blob){
-        lastBlob=blob;lastName=r.name;
-        document.getElementById('ovImg').src=URL.createObjectURL(blob);
-        document.getElementById('overlay').classList.add('on');
+        showResult(blob,dataUrl,r.name);
         dlBtn.disabled=false;
       },'image/png');
     }catch(e){dlBtn.disabled=false;alert('No se pudo generar la imagen.');}
@@ -1154,28 +1153,52 @@ dlBtn.addEventListener('click',function(){
     ]).then(go).catch(go);
   } else go();
 });
-var ovDl=document.getElementById('ovDl'),ovTip=document.getElementById('ovTip');
-ovDl.addEventListener('click',function(){
+var ovDl=document.getElementById('ovDl'),ovTip=document.getElementById('ovTip'),
+    ovShare=document.getElementById('ovShare');
+
+function canShareFile(f){
+  try{return !!(navigator.canShare&&navigator.canShare({files:[f]})&&navigator.share);}
+  catch(e){return false;}
+}
+function showResult(blob,dataUrl,name){
+  lastBlob=blob;lastName=name;
+  document.getElementById('ovImg').src=dataUrl;      // data: permite "Guardar imagen" al mantener pulsado
+  ovDl.href=dataUrl;ovDl.setAttribute('download',name);
+  var f=null;
+  try{f=new File([blob],name,{type:'image/png'});}catch(e){}
+  ovShare.hidden=!(f&&canShareFile(f));
+  ovTip.textContent=ovShare.hidden?
+    'Si no se descarga, mantén pulsada la imagen y elige Guardar.':
+    'Guardar en Fotos abre el menú del sistema.';
+  document.getElementById('overlay').classList.add('on');
+}
+ovShare.addEventListener('click',function(){
   if(!lastBlob)return;
-  if(dlApi&&dlApi.save){
-    ovDl.disabled=true;ovDl.textContent='Guardando…';
+  var f;
+  try{f=new File([lastBlob],lastName,{type:'image/png'});}catch(e){return;}
+  navigator.share({files:[f],title:'Vitral'}).then(function(){
+    ovTip.textContent='Listo ✓';
+  }).catch(function(err){
+    if(err&&err.name==='AbortError')return;
+    ovTip.textContent='No se pudo compartir. Mantén pulsada la imagen para guardarla.';
+  });
+});
+ovDl.addEventListener('click',function(e){
+  if(dlApi&&dlApi.save){                            // dentro de Claude
+    e.preventDefault();
+    if(!lastBlob)return;
+    ovDl.textContent='Guardando…';
     dlApi.save({filename:lastName,data:lastBlob}).then(function(){
-      ovDl.disabled=false;ovDl.textContent='Descargar PNG';ovTip.textContent='Guardada ✓';
+      ovDl.textContent='Descargar PNG';ovTip.textContent='Guardada ✓';
     }).catch(function(err){
-      ovDl.disabled=false;ovDl.textContent='Descargar PNG';
+      ovDl.textContent='Descargar PNG';
       ovTip.textContent=(err&&err.code)==='declined'?'Cancelaste la descarga.':
-        'No se pudo descargar aquí. Mantén pulsada la imagen para guardarla.';
+        'No se pudo descargar. Mantén pulsada la imagen para guardarla.';
     });
-  } else {
-    var a=document.createElement('a');
-    a.href=URL.createObjectURL(lastBlob);a.download=lastName;
-    document.body.appendChild(a);a.click();a.remove();
-    ovTip.textContent='Si no se descargó, mantén pulsada la imagen para guardarla.';
   }
 });
 document.getElementById('ovClose').addEventListener('click',function(){
   document.getElementById('overlay').classList.remove('on');
-  ovTip.textContent='En el móvil también puedes mantener pulsada la imagen para guardarla.';
 });
 document.getElementById('overlay').addEventListener('click',function(e){
   if(e.target===this)this.classList.remove('on');
