@@ -28,6 +28,7 @@ api/lyrics.js     GET /api/lyrics?title=...&artist=...
 api/genius.js     GET /api/genius?title=...&artist=...  resuelve el enlace
 api/health.js     GET /api/health
 api/og.js         GET /api/og?c=...   imagen de vista previa de los enlaces
+api/preview.js    GET /api/preview?title=...&artist=...  adelanto de 30 s
 manifest.json     PWA: instalable en la pantalla de inicio
 sw.js             service worker: armazón y portadas sin conexión
 icon-*.png        iconos de la app
@@ -174,3 +175,21 @@ del `package.json`, cosa que hace sola al desplegar. Si esa función fallara, el
 enlace sigue funcionando: solo se vería sin vista previa.
 
 La foto de fondo no viaja en el enlace (sería enorme); sí el resto.
+
+## Reproductor
+
+Al elegir una canción aparece un reproductor con el adelanto de 30 segundos: disco
+girando con la portada, barra de progreso y play/pausa.
+
+El audio viene de la **API de búsqueda de Apple** (iTunes Search), que es pública,
+no pide clave y sirve precisamente para esto. `api/preview.js` busca por título y
+artista, puntúa los resultados y se queda con el que coincide de verdad, para no
+acabar reproduciendo un remix ajeno o una canción de nombre parecido.
+
+Por qué no Spotify: desde noviembre de 2024 el campo `preview_url` llega vacío
+para las apps nuevas. El Web Playback SDK sí reproduce la canción completa, pero
+exige que **cada oyente** tenga Premium y esté autorizado en la app, y en modo
+desarrollo el límite es de cinco personas. Para compartir con amigos no sirve.
+
+Si Apple no tiene la canción o no encuentra coincidencia clara, el reproductor
+simplemente no aparece. El resto de la app funciona igual.
