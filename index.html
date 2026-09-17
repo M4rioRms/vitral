@@ -540,7 +540,7 @@ void main(){
     active=!!on;
     P=active?PRESETS.aurora:PRESETS.ghost;        // encendido rosa, apagado gris
     C=P.colors.map(toRGBA);
-    if(reduce)start();                            // repintar el fotograma fijo
+    start();                                      // arranca (o repinta) el render
   }
   setActive(true);
 
