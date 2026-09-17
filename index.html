@@ -1073,34 +1073,24 @@ function countTxt(){
 }
 var MAX=6;
 function clean(txt){
-  var lines=txt.split('\n').map(function(l){return l.replace(/\u00a0/g,' ').trim();});
+  var out=[];
+  txt.split('\n').forEach(function(l){
+    l=l.replace(/\u00a0/g,' ').trim();
+    if(!l)return;
 
-  // si pegaste la página entera, recorta al bloque de la letra
-  var start=-1,end=-1,i;
-  for(i=0;i<lines.length;i++){
-    if(/^(letra de|.+\blyrics)\b/i.test(lines[i])||/^letra\s*$/i.test(lines[i])){start=i+1;break;}
-  }
-  if(start>-1){
-    for(i=start;i<lines.length;i++){
-      if(/\d*\s*Embed\s*$/i.test(lines[i])||/^(About|Acerca de|Créditos|Credits)\b/i.test(lines[i])){end=i;break;}
-    }
-    lines=lines.slice(start,end>-1?end:lines.length);
-  }
+    // basura y publicidad de Genius
+    if(/^\d*\s*Embed$/i.test(l))return;
+    if(/^\d+\s*(Contributors?|Colaboradores?)\b/i.test(l))return;
+    if(/^(You might also like|Te podr[ií]a gustar)$/i.test(l))return;
+    if(/^(Translations?|Traducciones|Read More|Leer m[áa]s|Sign Up|Log ?in|Iniciar sesi[óo]n|Search|Buscar|Lyrics|Letra|About|Acerca de)$/i.test(l))return;
+    if(/get tickets as low as|see .+ live|^ver .+ en vivo$/i.test(l))return;
+    if(/^\d+$/.test(l))return;
+    if(/^letra de .+$/i.test(l)||/^.+ lyrics$/i.test(l))return;
 
-  var out=[],blanks=0;
-  lines.forEach(function(l){
-    l=l.replace(/\[[^\]]*\]/g,'')                       // [Coro], [Verso 1]
-       .replace(/\d*\s*Embed\s*$/i,'')
-       .replace(/^\s*\d+\s*Contributors?.*$/i,'')
-       .replace(/^(You might also like|Te podría gustar)$/i,'')
-       .replace(/^(Translations?|Traducciones)$/i,'')
-       .replace(/^letra de .*/i,'').replace(/^.+\blyrics$/i,'')
-       .replace(/^(Read More|Leer más|Sign Up|Iniciar sesión|Search|Buscar)$/i,'')
-       .replace(/^\d+$/,'')                                // numeritos sueltos
+    l=l.replace(/\[[^\]]*\]/g,'')      // [Coro], [Verso 1], [Puente]
+       .replace(/\s*\d*Embed$/i,'')     // el "47Embed" pegado al último verso
        .trim();
-    if(!l){blanks++;return;}
-    if(l.length>120&&/[.;:]\s/.test(l))return;             // párrafos de prosa, no letra
-    blanks=0;out.push(l);
+    if(l)out.push(l);
   });
   return out;
 }
