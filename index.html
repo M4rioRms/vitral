@@ -885,9 +885,11 @@ function refreshSwatches(){
   Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(sw){
     swatchFor(sw,STYLES[+sw.dataset.i]);
   });
-  Array.prototype.forEach.call(document.querySelectorAll('#toneChips .chip'),function(c,i){
-    c.classList.toggle('on',tones[i]===current);
+  Array.prototype.forEach.call(document.querySelectorAll('#toneChips .chip'),function(c){
+    var i=c.dataset.tone;
+    c.classList.toggle('on', i!==undefined && tones[+i]===current);
   });
+  autoChip.classList.toggle('on',!!current&&current.n==='Portada');
 }
 document.getElementById('btnStyle').addEventListener('click',function(){styOv.classList.add('on');});
 document.getElementById('styClose').addEventListener('click',function(){styOv.classList.remove('on');});
@@ -929,6 +931,7 @@ autoChip.addEventListener('click',function(){autoColor();});
 document.getElementById('toneChips').appendChild(autoChip);
 tones.forEach(function(t,i){
   var c=document.createElement('button');c.type='button';c.className='chip';
+  c.dataset.tone=i;
   var d=document.createElement('i');d.className='dot';d.style.background=t.a;
   c.appendChild(d);c.appendChild(document.createTextNode(t.n));
   c.addEventListener('click',function(){applyTone(t);});
