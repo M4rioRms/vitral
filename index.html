@@ -690,6 +690,7 @@ function skeleton(n){
   for(var i=0;i<n;i++){var d=document.createElement('div');d.className='sk';resBox.appendChild(d);}
 }
 function pick(it){
+  if(songKey()!==(it.title+'|'+it.artists))resetLyrics();
   titleEl.textContent=it.title;artistEl.textContent=it.artists;
   if(it.cover)setCover(it.cover);
   resBox.innerHTML='';qInput.value='';lastQ='';qInput.blur();
@@ -768,6 +769,15 @@ popBtn.addEventListener('click',function(){
 });
 
 /* ===== líneas ===== */
+function songKey(){return titleEl.innerText.trim()+'|'+artistEl.innerText.trim();}
+function resetLyrics(){
+  if(typeof lyrPaste==='undefined')return;
+  lyrPaste.value='';picked=[];linesBox.innerHTML='';
+  pasteWrap.classList.remove('done');
+  lyrics.textContent='';
+  document.getElementById('lyrCredit').hidden=true;
+  countTxt();
+}
 var lyrOv=document.getElementById('lyrOv'),lyrPaste=document.getElementById('lyrPaste'),
     linesBox=document.getElementById('lines'),lyrCount=document.getElementById('lyrCount'),picked=[];
 function countTxt(){
@@ -833,7 +843,7 @@ lyrPaste.addEventListener('input',function(){
   });
 });
 
-var clipBtn=document.getElementById('clipBtn');
+var clipBtn=document.getElementById('clipBtn'),awaiting=null;
 function pullClipboard(silent){
   if(!navigator.clipboard||!navigator.clipboard.readText){
     if(!silent)lyrCount.textContent='Tu navegador no deja pegar así. Usa pegar normal.';
@@ -843,6 +853,7 @@ function pullClipboard(silent){
     if(!txt||!txt.trim()){if(!silent)lyrCount.textContent='No hay texto copiado.';return;}
     if(silent&&txt.split('\n').length<2)return;
     if(silent&&txt.trim()===lyrPaste.value.trim())return;
+    if(silent)awaiting=null;                       // se consume una sola vez
     lyrPaste.value=txt;
     lyrPaste.dispatchEvent(new Event('input'));
   }).catch(function(){
@@ -856,6 +867,7 @@ document.getElementById('openLyr').addEventListener('click',function(){
   if(!t){lyrCount.textContent='Primero elige una canción en el buscador.';return;}
   var first=a.split(',')[0].trim();
   var fallback='https://genius.com/search?q='+encodeURIComponent(first+' '+t);
+  awaiting=songKey();                             // esperamos la letra de esta canción
   var win=window.open('about:blank','_blank');
   lyrCount.textContent='Buscando la canción…';
   var go=function(url){
@@ -873,12 +885,13 @@ document.addEventListener('visibilitychange',function(){
   if(document.visibilityState!=='visible')return;
   if(!lyrOv.classList.contains('on'))return;
   if(lyrPaste.value.trim())return;
+  if(awaiting!==songKey())return;                 // nada de portapapeles viejo
   setTimeout(function(){pullClipboard(true);},250);
 });
 
 document.getElementById('pickLyr').addEventListener('click',function(){
   lyrOv.classList.add('on');
-  if(!lyrPaste.value.trim())pullClipboard(true);
+  if(!lyrPaste.value.trim()&&awaiting===songKey())pullClipboard(true);
   setTimeout(function(){lyrPaste.focus();},80);
 });
 document.getElementById('lyrClose').addEventListener('click',function(){lyrOv.classList.remove('on');});
