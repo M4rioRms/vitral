@@ -812,11 +812,12 @@ lyrPaste.addEventListener('input',function(){
   var raw=clean(lyrPaste.value);
   pasteWrap.classList.toggle('done',raw.length>2);
   picked=[];countTxt();linesBox.innerHTML='';
-  raw.forEach(function(txt){
-    var b=document.createElement('button');b.type='button';b.className='line';b.textContent=txt;
+  raw.forEach(function(txt,idx){
+    var b=document.createElement('button');b.type='button';b.className='line';
+    b.textContent=txt;b.dataset.i=idx;
     b.addEventListener('click',function(){
-      var i=picked.indexOf(txt);
-      if(i>-1){picked.splice(i,1);b.classList.remove('on');}
+      var pos=picked.indexOf(idx);                  // por posición, no por texto
+      if(pos>-1){picked.splice(pos,1);b.classList.remove('on');}
       else{
         if(picked.length>=MAX){
           lyrCount.textContent='Máximo '+MAX+' líneas. Quita una para añadir otra.';
@@ -824,42 +825,12 @@ lyrPaste.addEventListener('input',function(){
                      {transform:'translateX(5px)'},{transform:'translateX(0)'}],150);
           return;
         }
-        picked.push(txt);b.classList.add('on');
+        picked.push(idx);b.classList.add('on');
       }
       countTxt();
     });
     linesBox.appendChild(b);
   });
-});
-var fetchBtn=document.getElementById('fetchLyr'),credit=document.getElementById('lyrCredit');
-fetchBtn.addEventListener('click',function(){
-  var t=titleEl.innerText.trim(),a=artistEl.innerText.trim();
-  if(!t){lyrCount.textContent='Primero elige una canción en el buscador.';return;}
-  fetchBtn.disabled=true;fetchBtn.textContent='Buscando letra…';credit.hidden=true;
-  fetch('/api/lyrics?title='+encodeURIComponent(t)+'&artist='+encodeURIComponent(a))
-    .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j};});})
-    .then(function(o){
-      fetchBtn.disabled=false;fetchBtn.textContent='Traer letra de la canción';
-      if(!o.ok||!o.j.lines||!o.j.lines.length){
-        lyrCount.textContent=(o.j&&o.j.error==='sin letra disponible')?
-          'Esa canción no tiene letra disponible.':'No se encontró la letra. Pégala a mano.';
-        return;
-      }
-      lyrPaste.value=o.j.lines.join('\n');
-      lyrPaste.dispatchEvent(new Event('input'));
-      if(o.j.copyright||o.j.partial){
-        credit.textContent=(o.j.partial?'Extracto parcial. ':'')+(o.j.copyright||'');
-        credit.hidden=false;
-      }
-      if(o.j.tracking&&!window.__mxm){      // Musixmatch exige cargar su tracking
-        window.__mxm=true;
-        var sc=document.createElement('script');sc.src=o.j.tracking;sc.async=true;
-        document.body.appendChild(sc);
-      }
-    }).catch(function(){
-      fetchBtn.disabled=false;fetchBtn.textContent='Traer letra de la canción';
-      lyrCount.textContent='No se pudo conectar. Pega la letra a mano.';
-    });
 });
 
 var clipBtn=document.getElementById('clipBtn');
@@ -870,7 +841,8 @@ function pullClipboard(silent){
   }
   navigator.clipboard.readText().then(function(txt){
     if(!txt||!txt.trim()){if(!silent)lyrCount.textContent='No hay texto copiado.';return;}
-    if(silent&&txt.split('\n').length<2)return;   // al abrir, solo si parece una letra
+    if(silent&&txt.split('\n').length<2)return;
+    if(silent&&txt.trim()===lyrPaste.value.trim())return;
     lyrPaste.value=txt;
     lyrPaste.dispatchEvent(new Event('input'));
   }).catch(function(){
@@ -879,13 +851,12 @@ function pullClipboard(silent){
 }
 clipBtn.addEventListener('click',function(){pullClipboard(false);});
 
-// abre la letra de la canción que ya tienes en la tarjeta, sin volver a buscarla
 document.getElementById('openLyr').addEventListener('click',function(){
   var t=titleEl.innerText.trim(),a=artistEl.innerText.trim();
   if(!t){lyrCount.textContent='Primero elige una canción en el buscador.';return;}
   var first=a.split(',')[0].trim();
   var fallback='https://genius.com/search?q='+encodeURIComponent(first+' '+t);
-  var win=window.open('about:blank','_blank');   // se abre ya, para no perder el gesto
+  var win=window.open('about:blank','_blank');
   lyrCount.textContent='Buscando la canción…';
   var go=function(url){
     if(win)win.location=url; else window.open(url,'_blank','noopener');
@@ -898,7 +869,6 @@ document.getElementById('openLyr').addEventListener('click',function(){
     .catch(function(){go(fallback);});
 });
 
-// al volver de la otra pestaña, recoge lo copiado
 document.addEventListener('visibilitychange',function(){
   if(document.visibilityState!=='visible')return;
   if(!lyrOv.classList.contains('on'))return;
