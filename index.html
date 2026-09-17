@@ -101,6 +101,26 @@
   }
   .dl:hover{opacity:1}
   .dl:active{transform:scale(.93)}
+  .fmt{right:52px;width:auto;padding:0 8px;gap:3px}
+  .fi{display:inline-block;border:1.6px solid currentColor;border-radius:3px;flex:0 0 auto}
+  .fi-card{width:14px;height:11px}
+  .fi-story{width:9px;height:15px}
+  .fmt-menu{
+    position:absolute;top:50px;right:12px;z-index:6;width:212px;
+    display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:16px;
+    background:rgba(20,10,30,.86);border:1px solid rgba(255,255,255,.22);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    box-shadow:0 14px 34px rgba(0,0,0,.45);color:#fff;
+  }
+  .fmt-menu button{
+    display:grid;grid-template-columns:22px 1fr;align-items:center;gap:2px 10px;
+    background:none;border:0;padding:9px 10px;border-radius:12px;text-align:left;color:#fff;
+  }
+  .fmt-menu button .fi{grid-row:span 2;margin:0 auto;opacity:.85}
+  .fmt-menu button b{font-size:13.5px;font-weight:600;letter-spacing:-.01em}
+  .fmt-menu button i{font-size:11px;font-style:normal;color:rgba(255,255,255,.6)}
+  .fmt-menu button.on{background:rgba(255,255,255,.18)}
+  .fmt-menu button:hover{background:rgba(255,255,255,.12)}
   .head{display:flex;align-items:center;gap:14px;position:relative;z-index:2;padding-right:34px}
   .cover{
     width:58px;height:58px;flex:0 0 58px;border-radius:16px;overflow:hidden;cursor:pointer;position:relative;
@@ -214,6 +234,14 @@
   </div>
 
   <div class="card gloss" id="card">
+    <button class="dl fmt" id="fmtBtn" title="Formato" type="button">
+      <span id="fmtIcon" class="fi fi-card"></span>
+      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="fmt-menu" id="fmtMenu" hidden>
+      <button type="button" data-f="card"><span class="fi fi-card"></span><b>Tarjeta</b><i>Para chat y publicaciones</i></button>
+      <button type="button" data-f="story"><span class="fi fi-story"></span><b>Historia</b><i>9:16, pantalla completa</i></button>
+    </div>
     <button class="dl" id="dl" title="Guardar imagen" type="button">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 11.5L12 16l4.5-4.5"/><path d="M5 19h14"/></svg>
     </button>
@@ -1011,7 +1039,8 @@ function draw(){
   if('letterSpacing' in m)m.letterSpacing=(g.sn*fsize).toFixed(2)+'px';
   var lines=wrap(m,lyricText,CW-padX*2),lh=fsize*1.34;
   var lyricsH=Math.max(150,lines.length*lh),headH=58,gap=sp.rule?41:26;
-  var cardH=padT+headH+gap+lyricsH+padB,H=cardH+M*2;
+  var cardH=padT+headH+gap+lyricsH+padB;
+  var H=(FMT==='story')?Math.max(cardH+M*2,Math.round(W*16/9)):cardH+M*2;
 
   var c=document.createElement('canvas');c.width=W*S;c.height=H*S;
   var x=c.getContext('2d');x.scale(S,S);
@@ -1028,7 +1057,7 @@ function draw(){
   blob(W*.02,H*.04,W*.55,t.a,.8);blob(W*.98,H*.9,W*.5,t.b,.75);
   blob(W*.55,H*.5,W*.4,t.c,.45);
 
-  var X=M,Y=M,R=sp.r;
+  var X=M,Y=Math.round((H-cardH)/2),R=sp.r;    // centrada en vertical
   (sp.sh||[]).forEach(function(s){
     x.save();x.shadowColor=s.c;x.shadowBlur=s.b;x.shadowOffsetX=s.x;x.shadowOffsetY=s.y;
     rrect(x,X,Y,CW,cardH,R);
@@ -1126,8 +1155,23 @@ function draw(){
 
   var nm=(titleEl.innerText.trim()||'vitral').toLowerCase()
     .replace(/[^a-z0-9áéíóúñ]+/g,'-').replace(/^-|-$/g,'');
-  return {canvas:c,name:(nm||'vitral')+'.png'};
+  return {canvas:c,name:(nm||'vitral')+(FMT==='story'?'-historia':'')+'.png'};
 }
+
+var FMT='card';
+var fmtBtn=document.getElementById('fmtBtn'),fmtMenu=document.getElementById('fmtMenu'),
+    fmtIcon=document.getElementById('fmtIcon');
+function setFmt(f){
+  FMT=f;
+  fmtIcon.className='fi '+(f==='story'?'fi-story':'fi-card');
+  Array.prototype.forEach.call(fmtMenu.children,function(b){b.classList.toggle('on',b.dataset.f===f);});
+  fmtMenu.hidden=true;
+}
+fmtBtn.addEventListener('click',function(e){e.stopPropagation();fmtMenu.hidden=!fmtMenu.hidden;});
+Array.prototype.forEach.call(fmtMenu.children,function(b){
+  b.addEventListener('click',function(e){e.stopPropagation();setFmt(b.dataset.f);});
+});
+document.addEventListener('click',function(){fmtMenu.hidden=true;});
 
 var dlApi=null,lastBlob=null,lastName='vitral.png';
 if(window.claude&&claude.use){claude.use('downloads').then(function(d){dlApi=d;}).catch(function(){});}
@@ -1214,7 +1258,7 @@ document.addEventListener('paste',function(e){
   document.execCommand('insertText',false,(e.clipboardData||window.clipboardData).getData('text'));
 });
 
-applyStyle(0);setFont(0);setSize(0);refreshSwatches();prepLyrLink();
+applyStyle(0);setFont(0);setSize(0);refreshSwatches();prepLyrLink();setFmt('card');
 })();
 </script>
 </body>
