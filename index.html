@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vitral</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1:#2a0140; --bg-2:#6c0ea8;
+    --blob-a:#e93cff; --blob-b:#7b2bff; --blob-c:#ff6ad5;
+    --glass:rgba(255,255,255,.13);
+    --glass-strong:rgba(255,255,255,.2);
+    --stroke:rgba(255,255,255,.28);
+    --text:rgba(255,255,255,.96);
+    --muted:rgba(255,255,255,.62);
+    --font-ui:"Plus Jakarta Sans",system-ui,-apple-system,sans-serif;
+    --font-display:"Space Grotesk","Plus Jakarta Sans",system-ui,sans-serif;
+    --display-weight:500; --display-spacing:-.03em; --display-style:normal;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh;background:var(--bg-1);
+    background-image:
+      radial-gradient(120% 90% at 15% 0%, var(--bg-2) 0%, transparent 60%),
+      radial-gradient(100% 80% at 100% 100%, #3d0568 0%, transparent 55%),
+      linear-gradient(160deg,#2a0140 0%,#12001f 100%);
+    font-family:var(--font-ui);color:var(--text);
+    display:flex;flex-direction:column;align-items:center;
+    padding:20px 16px 40px;overflow-x:hidden;
+  }
+  .blobs{position:fixed;inset:0;z-index:0;pointer-events:none;filter:blur(70px);opacity:.75}
+  .blob{position:absolute;border-radius:50%}
+  .b1{width:58vw;height:58vw;max-width:420px;max-height:420px;background:var(--blob-a);top:-8%;left:-12%}
+  .b2{width:52vw;height:52vw;max-width:380px;max-height:380px;background:var(--blob-b);bottom:2%;right:-14%}
+  .b3{width:40vw;height:40vw;max-width:300px;max-height:300px;background:var(--blob-c);top:42%;left:35%;opacity:.55}
+  .stage{position:relative;z-index:1;width:100%;max-width:400px}
+
+  .brand{display:flex;align-items:center;justify-content:center;gap:9px;margin:2px 0 16px;position:relative;z-index:3}
+  .brand .mark{
+    width:26px;height:26px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(140deg,rgba(255,255,255,.55),rgba(255,255,255,.08));
+    border:1px solid rgba(255,255,255,.4);
+    box-shadow:0 5px 14px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.6);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transform:rotate(-8deg);
+  }
+  .brand h1{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-.03em;margin:0}
+
+  .search{margin-bottom:14px;position:relative;z-index:3}
+  .sbar{
+    display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:999px;
+    background:var(--glass);border:1px solid var(--stroke);
+    backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+    box-shadow:0 10px 30px rgba(20,0,40,.3);color:var(--muted);
+  }
+  .sbar input{flex:1;min-width:0;background:none;border:0;outline:none;
+    font-family:var(--font-ui);font-size:15px;color:var(--text);padding:6px 0;-webkit-appearance:none}
+  .sbar input::placeholder{color:rgba(255,255,255,.5)}
+  .spin{flex:0 0 auto;width:15px;height:15px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.25);border-top-color:rgba(255,255,255,.9);
+    animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .results{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+  .results.dim{opacity:.45;transition:opacity .2s}
+  .res{
+    display:flex;align-items:center;gap:11px;width:100%;text-align:left;
+    padding:9px 13px;border-radius:18px;
+    background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    cursor:pointer;font-family:var(--font-ui);
+  }
+  .res:hover{background:rgba(255,255,255,.2)}
+  .res img{width:38px;height:38px;border-radius:9px;object-fit:cover;flex:0 0 auto;background:rgba(255,255,255,.12)}
+  .res .tx{min-width:0;flex:1}
+  .res b{display:block;font-size:14.5px;font-weight:600;letter-spacing:-.015em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .res span{display:block;font-size:12.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .res-msg{font-size:12.5px;color:var(--muted);text-align:center;padding:10px;line-height:1.5;margin:0}
+  .sk{height:56px;border-radius:18px;background:linear-gradient(100deg,rgba(255,255,255,.07) 30%,rgba(255,255,255,.16) 50%,rgba(255,255,255,.07) 70%);
+    background-size:220% 100%;animation:shim 1.1s linear infinite}
+  @keyframes shim{to{background-position:-120% 0}}
+
+  /* tarjeta */
+  .card{
+    position:relative;padding:26px 24px 30px;overflow:hidden;
+    border:1px solid transparent;
+    transition:background .3s,box-shadow .3s,border-radius .3s,border-color .3s;
+  }
+  .card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
+    background:linear-gradient(140deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 42%)}
+  .card.gloss::after{opacity:1}
+  .card.stitch::before{content:"";position:absolute;inset:9px;border-radius:inherit;pointer-events:none;
+    border:1.6px dashed rgba(255,255,255,.3)}
+  .dl{
+    position:absolute;top:12px;right:12px;z-index:5;width:32px;height:32px;padding:0;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(127,127,127,.18);border:1px solid currentColor;opacity:.55;
+    backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:inherit;cursor:pointer;
+  }
+  .dl:hover{opacity:1}
+  .dl:active{transform:scale(.93)}
+  .head{display:flex;align-items:center;gap:14px;position:relative;z-index:2;padding-right:34px}
+  .cover{
+    width:58px;height:58px;flex:0 0 58px;border-radius:16px;overflow:hidden;cursor:pointer;position:relative;
+    background:linear-gradient(135deg,#a12bff,#ff5ec7 60%,#4a0f7a);
+    border:1px solid rgba(255,255,255,.3);box-shadow:0 8px 22px rgba(0,0,0,.35);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .cover img{width:100%;height:100%;object-fit:cover;display:block}
+  .cover span{font-size:9px;letter-spacing:.06em;color:rgba(255,255,255,.85);text-align:center;line-height:1.2;padding:4px}
+  .cover .hole{position:absolute;inset:0;margin:auto;width:8px;height:8px;border-radius:50%;
+    background:rgba(0,0,0,.75);box-shadow:0 0 0 3px rgba(255,255,255,.18);display:none}
+  .card.disc .cover .hole{display:block}
+  .meta{min-width:0;flex:1}
+  .title{font-family:var(--font-display);font-size:19px;font-weight:600;letter-spacing:-.025em;line-height:1.2;overflow:hidden}
+  .artists{font-size:13.5px;font-weight:400;color:var(--muted);margin-top:3px;line-height:1.3;overflow:hidden}
+  .title:empty::before,.artists:empty::before{content:attr(data-ph);color:currentColor;opacity:.45;font-weight:400}
+  .rule{height:0;position:relative;z-index:2}
+  .lyrics{
+    position:relative;z-index:2;margin-top:26px;
+    font-family:var(--font-display);font-size:26px;line-height:1.34;
+    font-weight:var(--display-weight);letter-spacing:var(--display-spacing);font-style:var(--display-style);
+    white-space:pre-wrap;word-break:break-word;min-height:150px;
+  }
+  .lyrics:empty::before{content:attr(data-ph);opacity:.5;font-weight:400}
+  [contenteditable]{outline:none;border-radius:10px;transition:background .15s}
+  [contenteditable]:focus{background:rgba(127,127,127,.16)}
+
+  .tools{margin-top:18px;display:flex;gap:8px;justify-content:center;position:relative;z-index:1}
+  button{
+    font-family:inherit;font-size:13px;font-weight:500;color:var(--text);
+    background:var(--glass-strong);border:1px solid var(--stroke);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    padding:10px 16px;border-radius:999px;cursor:pointer;transition:background .15s,transform .1s;
+  }
+  button:active{transform:scale(.97)}
+  button:hover{background:rgba(255,255,255,.28)}
+  button[disabled]{opacity:.45;cursor:default}
+  input[type=file]{display:none}
+
+  .overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+    padding:18px;background:rgba(8,0,16,.85);
+    backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);overflow-y:auto}
+  .overlay.on{display:flex}
+  .ov-inner{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:400px;width:100%}
+  .ov-inner img{width:100%;border-radius:22px;box-shadow:0 20px 50px rgba(0,0,0,.5);display:block}
+  .ov-tip{font-size:12px;color:var(--muted);text-align:center;margin:0;line-height:1.5}
+  .ghost{background:transparent;border-color:rgba(255,255,255,.2)}
+  .panel{align-items:stretch;gap:9px;max-height:92vh;overflow-y:auto;padding:2px}
+  .panel h2{font-family:var(--font-display);font-size:19px;font-weight:600;letter-spacing:-.025em;margin:0;text-align:center}
+  .sec{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:8px 0 2px;font-weight:600}
+  .styles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .sty{padding:0 0 9px;border-radius:15px;font-size:12px;font-weight:600;letter-spacing:-.01em;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);cursor:pointer;overflow:hidden}
+  .sty.on{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.65)}
+  .sw{display:block;width:100%;height:42px;margin-bottom:8px;background-color:#333}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
+  .chip{padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:500;
+    background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);cursor:pointer}
+  .chip.on{background:rgba(255,255,255,.3);border-color:rgba(255,255,255,.6)}
+  .chip .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+  #lyrPaste{width:100%;min-height:74px;resize:vertical;font-family:var(--font-ui);font-size:14px;line-height:1.5;
+    color:#fff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
+    border-radius:18px;padding:12px 14px;outline:none;-webkit-appearance:none}
+  #lyrPaste::placeholder{color:rgba(255,255,255,.45)}
+  .lines{display:flex;flex-direction:column;gap:7px;max-height:40vh;overflow-y:auto;padding:2px}
+  .line{text-align:left;padding:13px 16px;border-radius:20px;
+    font-family:var(--font-display);font-size:16px;font-weight:500;letter-spacing:-.02em;line-height:1.3;
+    color:rgba(255,255,255,.55);background:rgba(255,255,255,.07);
+    border:1px solid rgba(255,255,255,.14);cursor:pointer;transition:all .15s}
+  .line.on{color:#fff;background:rgba(0,0,0,.55);border-color:rgba(255,255,255,.35)}
+  .acts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:6px;position:sticky;bottom:0}
+  @media (max-width:360px){.card{padding:22px 20px 26px}}
+</style>
+</head>
+<body>
+<div class="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+
+<div class="stage">
+  <header class="brand"><span class="mark"></span><h1>Vitral</h1></header>
+
+  <div class="search" id="search" hidden>
+    <div class="sbar">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscar canción o artista…" autocomplete="off" enterkeyhint="search">
+      <span class="spin" id="qspin" hidden></span>
+    </div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <div class="card gloss" id="card">
+    <button class="dl" id="dl" title="Guardar imagen" type="button">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M7.5 11.5L12 16l4.5-4.5"/><path d="M5 19h14"/></svg>
+    </button>
+    <div class="head">
+      <label class="cover" id="cover" for="coverInput"><span>Toca para<br>portada</span><i class="hole"></i></label>
+      <input type="file" id="coverInput" accept="image/*">
+      <div class="meta">
+        <div class="title" contenteditable="true" spellcheck="false" data-ph="Título"></div>
+        <div class="artists" contenteditable="true" spellcheck="false" data-ph="Artistas"></div>
+      </div>
+    </div>
+    <div class="rule" id="rule"></div>
+    <div class="lyrics" id="lyrics" contenteditable="true" spellcheck="false" data-ph="Pega aquí el fragmento que quieras mostrar…"></div>
+  </div>
+
+  <div class="tools">
+    <button id="btnStyle">Diseño</button>
+    <button id="pickLyr">Letra</button>
+    <button id="btnPop">Sin ideas</button>
+  </div>
+</div>
+
+<div class="overlay" id="styOv">
+  <div class="ov-inner panel">
+    <h2>Diseño</h2>
+    <p class="sec">Estilo</p>
+    <div class="styles" id="styGrid"></div>
+    <p class="sec">Tipografía</p>
+    <div class="chips" id="fontChips"></div>
+    <p class="sec">Tamaño de letra</p>
+    <div class="chips" id="sizeChips"></div>
+    <p class="sec">Color</p>
+    <div class="chips" id="toneChips"></div>
+    <div class="acts"><button type="button" id="styClose">Listo</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="lyrOv">
+  <div class="ov-inner panel">
+    <h2>Elegir líneas</h2>
+    <p class="lyr-sub sec" id="lyrCount" style="text-transform:none;letter-spacing:0;font-size:12.5px;text-align:center">Pega la letra y toca las líneas que quieras</p>
+    <textarea id="lyrPaste" placeholder="Pega aquí la letra (una línea por renglón)…"></textarea>
+    <div class="lines" id="lines"></div>
+    <div class="acts">
+      <button type="button" id="lyrAdd">Añadir</button>
+      <button type="button" id="lyrClose" class="ghost">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="ov-inner">
+    <img id="ovImg" alt="Tarjeta generada">
+    <button type="button" id="ovDl">Descargar PNG</button>
+    <p class="ov-tip" id="ovTip">En el móvil también puedes mantener pulsada la imagen para guardarla.</p>
+    <button type="button" id="ovClose" class="ghost">Cerrar</button>
+  </div>
+</div>
+
+<script>
+(function(){
+/* ===== color ===== */
+function rgb2hsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  var mx=Math.max(r,g,b),mn=Math.min(r,g,b),h=0,s=0,l=(mx+mn)/2,d=mx-mn;
+  if(d){s=l>.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)h=((g-b)/d+(g<b?6:0));else if(mx===g)h=((b-r)/d+2);else h=((r-g)/d+4);h*=60;}
+  return [h,s,l];
+}
+function hex2rgb(h){h=h.replace('#','');if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  var n=parseInt(h,16);return [(n>>16)&255,(n>>8)&255,n&255];}
+function hex2hsl(h){var c=hex2rgb(h);return rgb2hsl(c[0],c[1],c[2]);}
+function hsl(h,s,l,a){
+  h=((h%360)+360)%360;s=Math.min(1,Math.max(0,s));l=Math.min(1,Math.max(0,l));
+  var c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2,r,g,b;
+  if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}
+  else if(h<180){r=0;g=c;b=x;}else if(h<240){r=0;g=x;b=c;}
+  else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
+  r=Math.round((r+m)*255);g=Math.round((g+m)*255);b=Math.round((b+m)*255);
+  return 'rgba('+r+','+g+','+b+','+(a===undefined?1:a)+')';
+}
+function toHex(h,s,l){
+  var m=hsl(h,s,l).match(/\d+/g);
+  return '#'+[0,1,2].map(function(i){var v=(+m[i]).toString(16);return v.length<2?'0'+v:v;}).join('');
+}
+function hexa(x,a){var c=hex2rgb(x);return 'rgba('+c[0]+','+c[1]+','+c[2]+','+a+')';}
+
+/* ruido reutilizable (cuero, casete) */
+var NOISE=(function(){
+  var n=72,c=document.createElement('canvas');c.width=c.height=n;
+  var x=c.getContext('2d'),d=x.createImageData(n,n),i;
+  for(i=0;i<d.data.length;i+=4){
+    var v=200+Math.random()*55;
+    d.data[i]=d.data[i+1]=d.data[i+2]=v;d.data[i+3]=Math.random()*26;
+  }
+  x.putImageData(d,0,0);return c;
+})();
+var NOISE_URL=NOISE.toDataURL();
+
+/* ===== tonos ===== */
+var tones=[
+  {n:'Uva',b1:"#2a0140",b2:"#6c0ea8",a:"#e93cff",b:"#7b2bff",c:"#ff6ad5"},
+  {n:'Hielo',b1:"#031a2e",b2:"#0a5a8a",a:"#31d8ff",b:"#2b6bff",c:"#6affd8"},
+  {n:'Brasa',b1:"#2b0512",b2:"#a3143c",a:"#ff5c72",b:"#ff9a3c",c:"#ffd36a"},
+  {n:'Selva',b1:"#06120f",b2:"#0f5a44",a:"#3cffb0",b:"#1f9e7a",c:"#c7ff6a"},
+  {n:'Ceniza',b1:"#15151c",b2:"#3a3a4d",a:"#b9b9d6",b:"#6e6e8f",c:"#ffffff"}
+];
+var current=tones[0],root=document.documentElement.style;
+function applyTone(t){
+  current=t;
+  root.setProperty('--bg-1',t.b1);root.setProperty('--bg-2',t.b2);
+  root.setProperty('--blob-a',t.a);root.setProperty('--blob-b',t.b);root.setProperty('--blob-c',t.c);
+  document.body.style.backgroundImage=
+    'radial-gradient(120% 90% at 15% 0%, '+t.b2+' 0%, transparent 60%),'+
+    'radial-gradient(100% 80% at 100% 100%, '+t.b1+' 0%, transparent 55%),'+
+    'linear-gradient(160deg,'+t.b1+' 0%, #0d0014 100%)';
+  applyStyle(styIdx);refreshSwatches();
+}
+
+/* ===== estilos =====
+   deco: capas dibujadas dentro de la tarjeta (CSS y canvas comparten receta) */
+var STYLES=[
+{id:'vidrio',name:'Vidrio',build:function(h,s){return{
+  fill:{k:'solid',c:'rgba(255,255,255,0.135)'},blur:true,
+  stroke:{c:'rgba(255,255,255,.3)',w:1},r:30,
+  sh:[{x:0,y:20,b:52,c:'rgba(15,0,30,.5)'}],
+  deco:[{t:'sheen',c:'rgba(255,255,255,.14)'},{t:'edge'}],
+  gloss:true,topline:true,fg:'rgba(255,255,255,.96)',mut:'rgba(255,255,255,.62)',
+  coverR:16,tsh:'rgba(40,0,60,.35)'};}},
+
+{id:'almohada',name:'Almohada',build:function(h,s){return{
+  fill:{k:'solid',c:hsl(h,s*.42,.22)},stroke:null,r:34,
+  sh:[{x:12,y:14,b:28,c:hsl(h,s*.6,.05,.85)},{x:-12,y:-14,b:28,c:hsl(h,s*.4,.36,.7)}],
+  inset:[{x:2,y:3,b:10,c:hsl(h,s*.5,.08,.55)},{x:-2,y:-3,b:10,c:hsl(h,s*.3,.45,.45)}],
+  deco:[{t:'soft',c:hsl(h,s*.3,.42,.25)}],
+  fg:'rgba(255,255,255,.93)',mut:'rgba(255,255,255,.5)',coverR:18};}},
+
+{id:'cartel',name:'Cartel',build:function(h,s){return{
+  fill:{k:'solid',c:hsl(h,.93,.57)},stroke:{c:'#0c0c0c',w:3},r:4,
+  sh:[{x:10,y:10,b:0,c:'#0c0c0c'}],
+  deco:[{t:'dots',c:'rgba(12,12,12,.2)',gap:11,r:1.5},{t:'bar',c:'#0c0c0c',h:7,pos:'bottom'}],
+  fg:'#0c0c0c',mut:'rgba(12,12,12,.62)',coverR:2,upper:true,pb:40};}},
+
+{id:'plastilina',name:'Plastilina',build:function(h,s){return{
+  fill:{k:'solid',c:hsl(h,.58,.6)},stroke:null,r:40,
+  sh:[{x:0,y:20,b:34,c:hsl(h,.6,.2,.6)}],
+  inset:[{x:0,y:-8,b:16,c:hsl(h,.5,.35,.6)},{x:0,y:9,b:16,c:'rgba(255,255,255,.55)'}],
+  deco:[{t:'inner',c:'rgba(255,255,255,.4)'}],
+  fg:'#fff',mut:'rgba(255,255,255,.76)',coverR:24};}},
+
+{id:'neon',name:'Neón',build:function(h,s){return{
+  fill:{k:'solid',c:hsl(h,.5,.06)},stroke:{c:hsl(h,.95,.62),w:1.5},r:22,
+  sh:[{x:0,y:0,b:36,c:hsl(h,.95,.6,.5)},{x:0,y:16,b:40,c:'rgba(0,0,0,.55)'}],
+  deco:[{t:'scan',c:'rgba(255,255,255,.05)'},{t:'corner',c:hsl(h,.95,.6,.32)}],
+  fg:'#fff',mut:hsl(h,.85,.72),coverR:12,glow:hsl(h,.95,.62,.9)};}},
+
+{id:'aire',name:'Aire',build:function(h,s){return{
+  fill:null,stroke:null,r:0,sh:[],deco:[],
+  fg:'rgba(255,255,255,.97)',mut:'rgba(255,255,255,.6)',coverR:12,
+  weight:400,tsh:'rgba(0,0,0,.35)',rule:{w:46,c:'rgba(255,255,255,.45)'}};}},
+
+{id:'casete',name:'Casete',build:function(h,s){return{
+  fill:{k:'solid',c:hsl(h,.26,.9)},stroke:{c:'rgba(0,0,0,.16)',w:1},r:10,
+  sh:[{x:0,y:14,b:32,c:'rgba(0,0,0,.4)'}],
+  deco:[{t:'band',c:hsl(h,.55,.46),h:9},{t:'band',c:hsl(h,.5,.62),h:4,off:9},
+        {t:'ruled',c:'rgba(0,0,0,.07)',gap:34,from:70},{t:'grain',a:.5}],
+  fg:'#2a2118',mut:'rgba(42,33,24,.58)',coverR:5,pt:36,
+  rule:{w:'full',c:'rgba(0,0,0,.12)'}};}},
+
+{id:'vinilo',name:'Vinilo',build:function(h,s){return{
+  fill:{k:'solid',c:'#0b0b0d'},stroke:{c:'rgba(255,255,255,.14)',w:1},r:26,
+  sh:[{x:0,y:20,b:46,c:'rgba(0,0,0,.65)'}],
+  deco:[{t:'grooves'},{t:'shine',c:hsl(h,.7,.6,.16)}],
+  fg:'#fff',mut:'rgba(255,255,255,.52)',coverR:'circle',disc:true};}},
+
+{id:'aurora',name:'Aurora',build:function(h,s){return{
+  fill:{k:'grad',a:hsl(h,.78,.5),b:hsl(h+62,.7,.36)},
+  stroke:{c:'rgba(255,255,255,.28)',w:1},r:28,
+  sh:[{x:0,y:20,b:46,c:hsl(h,.7,.12,.65)}],
+  deco:[{t:'mesh',a:hsl(h+30,.95,.65,.5),b:hsl(h-45,.9,.6,.42)},{t:'edge'}],
+  gloss:true,topline:true,fg:'#fff',mut:'rgba(255,255,255,.78)',coverR:16};}},
+
+{id:'ficha',name:'Ficha',build:function(h,s){return{
+  fill:{k:'solid',c:'#fbfaf7'},stroke:{c:'rgba(0,0,0,.1)',w:1},r:12,
+  sh:[{x:0,y:12,b:30,c:'rgba(0,0,0,.35)'}],
+  deco:[{t:'ruled',c:'rgba(40,60,90,.1)',gap:29,from:96},
+        {t:'vline',x:40,c:'rgba(214,74,74,.5)'}],
+  fg:'#141417',mut:'rgba(20,20,23,.52)',coverR:6,px:52,
+  rule:{w:'full',c:'rgba(0,0,0,.09)'}};}},
+
+{id:'cuero',name:'Cuero',build:function(h,s){return{
+  fill:{k:'grad',a:hsl(h,.3,.24),b:hsl(h,.36,.11)},
+  stroke:{c:'rgba(0,0,0,.6)',w:2},r:20,stitch:true,
+  sh:[{x:0,y:16,b:36,c:'rgba(0,0,0,.55)'}],
+  inset:[{x:0,y:-6,b:14,c:'rgba(0,0,0,.5)'}],
+  deco:[{t:'grain',a:1},{t:'soft',c:'rgba(255,255,255,.1)'}],
+  gloss:true,fg:'#f3e7d3',mut:'rgba(243,231,211,.6)',coverR:8};}}
+];
+
+var styIdx=0,spec=null;
+var card=document.getElementById('card'),lyrics=document.getElementById('lyrics'),
+    coverEl=document.getElementById('cover'),titleEl=document.querySelector('.title'),
+    artistEl=document.querySelector('.artists'),ruleEl=document.getElementById('rule');
+
+/* --- deco en CSS --- */
+function decoCss(d){
+  switch(d.t){
+    case 'sheen': return 'radial-gradient(120% 80% at 82% 112%, '+d.c+' 0%, transparent 62%)';
+    case 'soft':  return 'radial-gradient(90% 60% at 30% 0%, '+d.c+' 0%, transparent 70%)';
+    case 'inner': return 'linear-gradient(180deg, '+d.c+' 0%, transparent 46%)';
+    case 'edge':  return 'linear-gradient(200deg, rgba(255,255,255,.16) 0%, transparent 28%)';
+    case 'dots':  return 'radial-gradient(circle, '+d.c+' '+d.r+'px, transparent '+(d.r+.6)+'px)';
+    case 'scan':  return 'repeating-linear-gradient(0deg, '+d.c+' 0 1px, transparent 1px 3px)';
+    case 'corner':return 'radial-gradient(70% 50% at 100% 0%, '+d.c+' 0%, transparent 65%)';
+    case 'shine': return 'radial-gradient(60% 90% at 110% 30%, '+d.c+' 0%, transparent 60%)';
+    case 'mesh':  return 'radial-gradient(60% 55% at 18% 8%, '+d.a+' 0%, transparent 62%),'+
+                         'radial-gradient(70% 60% at 92% 96%, '+d.b+' 0%, transparent 62%)';
+    case 'ruled': return 'repeating-linear-gradient(0deg, transparent 0 '+(d.gap-1)+'px, '+d.c+' '+(d.gap-1)+'px '+d.gap+'px)';
+    case 'vline': return 'linear-gradient(90deg, transparent 0 '+d.x+'px, '+d.c+' '+d.x+'px '+(d.x+1)+'px, transparent '+(d.x+1)+'px)';
+    case 'band':  return 'linear-gradient(180deg, '+d.c+' 0 '+d.h+'px, transparent '+d.h+'px)';
+    case 'bar':   return 'linear-gradient(0deg, '+d.c+' 0 '+d.h+'px, transparent '+d.h+'px)';
+    case 'grooves':return 'repeating-radial-gradient(circle at 53px 55px, rgba(255,255,255,.07) 0 1px, rgba(255,255,255,0) 1px 4px)';
+    case 'grain': return 'url('+NOISE_URL+')';
+  }
+  return null;
+}
+function decoSize(d){
+  if(d.t==='dots')return (d.gap||11)+'px '+(d.gap||11)+'px';
+  if(d.t==='grain')return '72px 72px';
+  return 'auto';
+}
+function decoPos(d){
+  if(d.t==='ruled'&&d.from)return '0 '+d.from+'px';
+  if(d.t==='band'&&d.off)return '0 '+d.off+'px';
+  return '0 0';
+}
+function decoRepeat(d){
+  return (d.t==='dots'||d.t==='grain'||d.t==='ruled')?'repeat':'no-repeat';
+}
+function fillCss(f){
+  if(!f)return null;
+  if(f.k==='grad')return 'linear-gradient(140deg,'+f.a+' 0%,'+f.b+' 100%)';
+  return null;
+}
+function applyStyle(i){
+  styIdx=i;
+  var hs=hex2hsl(current.b2);
+  spec=STYLES[i].build(hs[0],Math.max(.25,hs[1]));
+  var imgs=[],sizes2=[],poss=[],reps=[];
+  (spec.deco||[]).forEach(function(d){
+    var css=decoCss(d);if(!css)return;
+    css.split(/,(?![^(]*\))/).forEach(function(part){
+      imgs.push(part.trim());sizes2.push(decoSize(d));poss.push(decoPos(d));reps.push(decoRepeat(d));
+    });
+  });
+  var fg2=fillCss(spec.fill);
+  if(fg2){imgs.push(fg2);sizes2.push('auto');poss.push('0 0');reps.push('no-repeat');}
+  card.style.backgroundColor=(spec.fill&&spec.fill.k==='solid')?spec.fill.c:'transparent';
+  card.style.backgroundImage=imgs.join(', ');
+  card.style.backgroundSize=sizes2.join(', ');
+  card.style.backgroundPosition=poss.join(', ');
+  card.style.backgroundRepeat=reps.join(', ');
+  var sh=(spec.sh||[]).map(function(s){return s.x+'px '+s.y+'px '+s.b+'px '+s.c;});
+  (spec.inset||[]).forEach(function(s){sh.push('inset '+s.x+'px '+s.y+'px '+s.b+'px '+s.c);});
+  card.style.boxShadow=sh.join(',')||'none';
+  card.style.border=spec.stroke?(spec.stroke.w+'px solid '+spec.stroke.c):'1px solid transparent';
+  card.style.borderRadius=spec.r+'px';
+  card.style.backdropFilter=card.style.webkitBackdropFilter=spec.blur?'blur(26px) saturate(170%)':'none';
+  card.style.paddingTop=(spec.pt||26)+'px';
+  card.style.paddingBottom=(spec.pb||30)+'px';
+  card.style.paddingLeft=card.style.paddingRight=(spec.px||24)+'px';
+  card.style.setProperty('--text',spec.fg);card.style.setProperty('--muted',spec.mut);
+  card.style.color=spec.fg;
+  card.classList.toggle('gloss',!!spec.gloss);
+  card.classList.toggle('stitch',!!spec.stitch);
+  card.classList.toggle('disc',!!spec.disc);
+  titleEl.style.textTransform=spec.upper?'uppercase':'none';
+  lyrics.style.fontWeight=spec.weight||'';
+  lyrics.style.textShadow=spec.glow?('0 0 18px '+spec.glow):(spec.tsh?'0 1px 14px '+spec.tsh:'none');
+  coverEl.style.borderRadius=spec.coverR==='circle'?'50%':spec.coverR+'px';
+  if(spec.rule){
+    ruleEl.style.height='1px';
+    ruleEl.style.width=spec.rule.w==='full'?'100%':spec.rule.w+'px';
+    ruleEl.style.background=spec.rule.c;ruleEl.style.marginTop='20px';
+    lyrics.style.marginTop='20px';
+  } else {ruleEl.style.height='0';ruleEl.style.background='none';ruleEl.style.marginTop='0';lyrics.style.marginTop='26px';}
+  Array.prototype.forEach.call(document.querySelectorAll('.sty'),function(el,k){el.classList.toggle('on',k===i);});
+}
+
+/* ===== panel de diseño ===== */
+var styGrid=document.getElementById('styGrid'),styOv=document.getElementById('styOv');
+function swatchFor(el,st){
+  var hs=hex2hsl(current.b2),sp=st.build(hs[0],Math.max(.25,hs[1]));
+  var imgs=[],sz=[],ps=[],rp=[];
+  (sp.deco||[]).forEach(function(d){
+    var css=decoCss(d);if(!css)return;
+    css.split(/,(?![^(]*\))/).forEach(function(p){imgs.push(p.trim());sz.push(decoSize(d));ps.push(decoPos(d));rp.push(decoRepeat(d));});
+  });
+  var f=fillCss(sp.fill);if(f){imgs.push(f);sz.push('auto');ps.push('0 0');rp.push('no-repeat');}
+  el.style.backgroundColor=(sp.fill&&sp.fill.k==='solid')?sp.fill.c:'rgba(255,255,255,.12)';
+  el.style.backgroundImage=imgs.join(', ');el.style.backgroundSize=sz.join(', ');
+  el.style.backgroundPosition=ps.join(', ');el.style.backgroundRepeat=rp.join(', ');
+  el.style.borderBottom=sp.stroke?('1px solid '+sp.stroke.c):'none';
+}
+STYLES.forEach(function(st,i){
+  var b=document.createElement('button');b.type='button';b.className='sty';
+  var sw=document.createElement('span');sw.className='sw';sw.dataset.i=i;
+  b.appendChild(sw);b.appendChild(document.createTextNode(st.name));
+  b.addEventListener('click',function(){applyStyle(i);});
+  styGrid.appendChild(b);
+});
+function refreshSwatches(){
+  Array.prototype.forEach.call(document.querySelectorAll('.sw'),function(sw){
+    swatchFor(sw,STYLES[+sw.dataset.i]);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#toneChips .chip'),function(c,i){
+    c.classList.toggle('on',tones[i]===current);
+  });
+}
+document.getElementById('btnStyle').addEventListener('click',function(){styOv.classList.add('on');});
+document.getElementById('styClose').addEventListener('click',function(){styOv.classList.remove('on');});
+styOv.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
+
+/* tipografías / tamaños / color */
+var fonts=[
+ {f:'"Space Grotesk","Plus Jakarta Sans",sans-serif',n:'Space Grotesk',lbl:'Grotesk',w:500,s:'-.03em',sn:-.03,i:'normal'},
+ {f:'"Bricolage Grotesque","Plus Jakarta Sans",sans-serif',n:'Bricolage Grotesque',lbl:'Bricolage',w:600,s:'-.035em',sn:-.035,i:'normal'},
+ {f:'"Plus Jakarta Sans",system-ui,sans-serif',n:'Plus Jakarta Sans',lbl:'Jakarta',w:500,s:'-.025em',sn:-.025,i:'normal'},
+ {f:'"Outfit",system-ui,sans-serif',n:'Outfit',lbl:'Outfit',w:400,s:'-.015em',sn:-.015,i:'normal'},
+ {f:'"Instrument Serif",Georgia,serif',n:'Instrument Serif',lbl:'Serif',w:400,s:'-.01em',sn:-.01,i:'italic'}
+];
+var fi=0,sizes=[26,22,31,36],si=0;
+function setFont(i){
+  fi=i;var g=fonts[i];
+  root.setProperty('--font-display',g.f);root.setProperty('--display-weight',g.w);
+  root.setProperty('--display-spacing',g.s);root.setProperty('--display-style',g.i);
+  Array.prototype.forEach.call(document.querySelectorAll('#fontChips .chip'),function(c,k){c.classList.toggle('on',k===i);});
+}
+function setSize(i){
+  si=i;lyrics.style.fontSize=sizes[i]+'px';
+  Array.prototype.forEach.call(document.querySelectorAll('#sizeChips .chip'),function(c,k){c.classList.toggle('on',k===i);});
+}
+fonts.forEach(function(g,i){
+  var c=document.createElement('button');c.type='button';c.className='chip';
+  c.textContent=g.lbl;c.style.fontFamily=g.f;c.style.fontStyle=g.i;
+  c.addEventListener('click',function(){setFont(i);});
+  document.getElementById('fontChips').appendChild(c);
+});
+['M','S','L','XL'].forEach(function(lbl,i){
+  var c=document.createElement('button');c.type='button';c.className='chip';c.textContent=lbl;
+  c.addEventListener('click',function(){setSize(i);});
+  document.getElementById('sizeChips').appendChild(c);
+});
+var autoChip=document.createElement('button');
+autoChip.type='button';autoChip.className='chip';autoChip.textContent='De la portada';autoChip.disabled=true;
+autoChip.addEventListener('click',function(){autoColor();});
+document.getElementById('toneChips').appendChild(autoChip);
+tones.forEach(function(t,i){
+  var c=document.createElement('button');c.type='button';c.className='chip';
+  var d=document.createElement('i');d.className='dot';d.style.background=t.a;
+  c.appendChild(d);c.appendChild(document.createTextNode(t.n));
+  c.addEventListener('click',function(){applyTone(t);});
+  document.getElementById('toneChips').appendChild(c);
+});
+
+/* ===== paleta desde la portada ===== */
+function paletteFrom(img){
+  var n=72,cv=document.createElement('canvas');cv.width=n;cv.height=n;
+  var cx=cv.getContext('2d');cx.drawImage(img,0,0,n,n);
+  var d;try{d=cx.getImageData(0,0,n,n).data;}catch(e){return null;}
+  var buckets={},i,key,bk;
+  for(i=0;i<d.length;i+=4){
+    if(d[i+3]<200)continue;
+    var c=rgb2hsl(d[i],d[i+1],d[i+2]);
+    if(c[2]<.06||c[2]>.96)continue;
+    key=(d[i]>>4)+'-'+(d[i+1]>>4)+'-'+(d[i+2]>>4);
+    bk=buckets[key]||(buckets[key]={w:0,n:0,r:0,g:0,b:0});
+    bk.w+=.2+c[1]*1.6+(1-Math.abs(c[2]-.52)*1.5);
+    bk.n++;bk.r+=d[i];bk.g+=d[i+1];bk.b+=d[i+2];
+  }
+  var list=Object.keys(buckets).map(function(k){
+    var v=buckets[k],c=rgb2hsl(v.r/v.n,v.g/v.n,v.b/v.n);
+    return {score:v.w,h:c[0],s:c[1],l:c[2]};
+  }).sort(function(a,b){return b.score-a.score;});
+  if(!list.length)return null;
+  var p=list[0],q=null,j;
+  for(j=1;j<Math.min(list.length,14);j++){
+    var dh=Math.abs(list[j].h-p.h);dh=Math.min(dh,360-dh);
+    if(dh>32&&list[j].s>.12){q=list[j];break;}
+  }
+  if(!q)q={h:p.h+38,s:p.s,l:p.l};
+  var grey=p.s<.13;
+  var s1=grey?.1:Math.min(.94,Math.max(.42,p.s*1.05));
+  var s2=grey?.1:Math.min(.94,Math.max(.42,q.s*1.05));
+  return {n:'Portada',b1:toHex(p.h,s1*.9,grey?.09:.1),b2:toHex(p.h,s1,.3),
+          a:toHex(p.h,Math.min(.95,s1*1.1),.55),b:toHex(q.h,s2,.46),c:toHex(p.h+28,s1,.68)};
+}
+function autoColor(){
+  var img=coverEl.querySelector('img');if(!img)return;
+  var p=paletteFrom(img);if(p)applyTone(p);
+}
+function setCover(src){
+  var img=new Image();
+  img.onload=function(){
+    var hole=coverEl.querySelector('.hole');
+    coverEl.innerHTML='';coverEl.appendChild(img);
+    if(hole)coverEl.appendChild(hole);
+    autoChip.disabled=false;autoColor();
+  };
+  img.src=src;
+}
+document.getElementById('coverInput').addEventListener('change',function(e){
+  var f=e.target.files&&e.target.files[0];if(!f)return;
+  var r=new FileReader();r.onload=function(ev){setCover(ev.target.result);};r.readAsDataURL(f);
+});
+
+/* ===== datos ===== */
+var SRC={mode:'none',sample:null};
+(function boot(){
+  var done=false,t=setTimeout(function(){if(!done)fallback();},1800);
+  fetch('/api/health').then(function(r){return r.ok?r.json():Promise.reject();})
+    .then(function(j){
+      done=true;clearTimeout(t);
+      if(j&&j.spotify){SRC.mode='spotify';document.getElementById('search').hidden=false;}
+      else fallback();
+    }).catch(function(){done=true;clearTimeout(t);fallback();});
+  function fallback(){
+    if(SRC.mode!=='none')return;
+    if(window.claude&&claude.use){
+      claude.use('sample').then(function(s){
+        if(!s)return;
+        SRC.mode='claude';SRC.sample=s;document.getElementById('search').hidden=false;
+      }).catch(function(){});
+    }
+  }
+})();
+function ask(prompt,signal){
+  return SRC.sample.json([{role:'user',content:prompt}],{modelTier:'quick',cache:true,signal:signal});
+}
+function norm(r){
+  var it=Array.isArray(r)?r:(r&&(r.results||r.songs||r.tracks))||[];
+  return it.filter(function(x){return x&&x.title&&x.artists;});
+}
+function searchSongs(q,signal){
+  if(SRC.mode==='spotify'){
+    return fetch('/api/search?q='+encodeURIComponent(q),{signal:signal})
+      .then(function(r){return r.json();}).then(function(j){return j.items||[];});
+  }
+  return ask('Autocompletado de un buscador de canciones. Escrito: "'+q+'".\n'+
+    'SOLO un array JSON, sin markdown, hasta 5 canciones reales que coincidan, de más a menos populares.\n'+
+    'Formato: {"title":"...","artists":"artistas con los featuring acreditados","year":"año"}.\n'+
+    'Respeta mayúsculas y acentos. Si no reconoces ninguna, [].',signal).then(norm);
+}
+function popularSongs(){
+  if(SRC.mode==='spotify'){
+    return fetch('/api/popular').then(function(r){return r.json();}).then(function(j){return j.items||[];});
+  }
+  return ask('Dame 5 canciones muy escuchadas ahora mismo, mezclando éxitos globales y en español.\n'+
+    'SOLO un array JSON: {"title":"...","artists":"...","year":"año"}.').then(norm);
+}
+
+/* ===== buscador ===== */
+var qInput=document.getElementById('q'),qSpin=document.getElementById('qspin'),
+    resBox=document.getElementById('results'),timer=null,ctrl=null,cache={},lastQ='';
+function msg(t){resBox.innerHTML='';var p=document.createElement('p');p.className='res-msg';p.textContent=t;resBox.appendChild(p);}
+function skeleton(n){
+  resBox.innerHTML='';resBox.classList.remove('dim');
+  for(var i=0;i<n;i++){var d=document.createElement('div');d.className='sk';resBox.appendChild(d);}
+}
+function pick(it){
+  titleEl.textContent=it.title;artistEl.textContent=it.artists;
+  if(it.cover)setCover(it.cover);
+  resBox.innerHTML='';qInput.value='';lastQ='';qInput.blur();
+}
+function render(items){
+  resBox.classList.remove('dim');resBox.innerHTML='';
+  if(!items.length){msg('Sin resultados.');return;}
+  items.slice(0,6).forEach(function(it){
+    var b=document.createElement('button');b.type='button';b.className='res';
+    if(it.cover){var im=new Image();im.src=it.cover;im.alt='';b.appendChild(im);}
+    var tx=document.createElement('span');tx.className='tx';
+    var t=document.createElement('b');t.textContent=it.title;
+    var a=document.createElement('span');a.textContent=it.artists+(it.year?' · '+it.year:'');
+    tx.appendChild(t);tx.appendChild(a);b.appendChild(tx);
+    b.addEventListener('click',function(){pick(it);});
+    resBox.appendChild(b);
+  });
+}
+function prefixHit(q){            // resultados de un prefijo ya buscado
+  for(var i=q.length-1;i>=2;i--){
+    var p=q.slice(0,i);
+    if(cache[p]&&cache[p].length){
+      var lo=q.toLowerCase();
+      var f=cache[p].filter(function(x){
+        return (x.title+' '+x.artists).toLowerCase().indexOf(lo.slice(0,i))>-1;
+      });
+      if(f.length)return f;
+    }
+  }
+  return null;
+}
+function doSearch(q){
+  if(SRC.mode==='none'||q===lastQ)return;
+  lastQ=q;
+  if(cache[q]){render(cache[q]);qSpin.hidden=true;return;}
+  var hint=prefixHit(q);
+  if(hint){render(hint);resBox.classList.add('dim');}
+  else if(!resBox.children.length)skeleton(3);
+  else resBox.classList.add('dim');
+  if(ctrl)ctrl.abort();
+  ctrl=window.AbortController?new AbortController():null;
+  qSpin.hidden=false;
+  searchSongs(q,ctrl?ctrl.signal:undefined).then(function(items){
+    cache[q]=items;qSpin.hidden=true;
+    if(qInput.value.trim()===q)render(items);
+  }).catch(function(err){
+    var c=(err&&err.code)||(err&&err.name);
+    if(c==='cancelled'||c==='AbortError')return;
+    qSpin.hidden=true;resBox.classList.remove('dim');
+    if(c==='not_granted')msg('Acepta el permiso para usar el buscador.');
+    else if(c==='rate_limited')msg('Espera un momento y sigue escribiendo.');
+    else msg('No se pudo buscar. Escribe el nombre a mano en la tarjeta.');
+  });
+}
+qInput.addEventListener('input',function(){
+  var q=qInput.value.trim();clearTimeout(timer);
+  if(q.length<2){resBox.innerHTML='';lastQ='';qSpin.hidden=true;return;}
+  var hit=cache[q]||prefixHit(q);
+  if(hit)render(hit);
+  timer=setTimeout(function(){doSearch(q);},SRC.mode==='spotify'?140:260);
+});
+qInput.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){e.preventDefault();clearTimeout(timer);doSearch(qInput.value.trim());}
+});
+var popBtn=document.getElementById('btnPop');
+popBtn.addEventListener('click',function(){
+  if(SRC.mode==='none'){return;}
+  document.getElementById('search').hidden=false;
+  popBtn.disabled=true;qSpin.hidden=false;lastQ='';skeleton(4);
+  popularSongs().then(function(items){
+    qSpin.hidden=true;popBtn.disabled=false;render(items.slice(0,5));
+    window.scrollTo({top:0,behavior:'smooth'});
+  }).catch(function(){
+    qSpin.hidden=true;popBtn.disabled=false;msg('No se pudieron cargar.');
+  });
+});
+
+/* ===== líneas ===== */
+var lyrOv=document.getElementById('lyrOv'),lyrPaste=document.getElementById('lyrPaste'),
+    linesBox=document.getElementById('lines'),lyrCount=document.getElementById('lyrCount'),picked=[];
+function countTxt(){
+  lyrCount.textContent=picked.length?
+    picked.length+(picked.length===1?' línea seleccionada':' líneas seleccionadas'):
+    'Pega la letra y toca las líneas que quieras';
+}
+lyrPaste.addEventListener('input',function(){
+  var raw=lyrPaste.value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  picked=[];countTxt();linesBox.innerHTML='';
+  raw.forEach(function(txt){
+    var b=document.createElement('button');b.type='button';b.className='line';b.textContent=txt;
+    b.addEventListener('click',function(){
+      var i=picked.indexOf(txt);
+      if(i>-1){picked.splice(i,1);b.classList.remove('on');}
+      else{picked.push(txt);b.classList.add('on');}
+      countTxt();
+    });
+    linesBox.appendChild(b);
+  });
+});
+document.getElementById('pickLyr').addEventListener('click',function(){
+  lyrOv.classList.add('on');setTimeout(function(){lyrPaste.focus();},80);
+});
+document.getElementById('lyrClose').addEventListener('click',function(){lyrOv.classList.remove('on');});
+lyrOv.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
+document.getElementById('lyrAdd').addEventListener('click',function(){
+  if(!picked.length)return;
+  var order=[];
+  Array.prototype.forEach.call(linesBox.children,function(el){
+    if(el.classList.contains('on'))order.push(el.textContent);
+  });
+  lyrics.textContent=order.join('\n');lyrOv.classList.remove('on');
+});
+
+/* ===== exportar ===== */
+function rrect(x,px,py,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  x.beginPath();x.moveTo(px+r,py);
+  x.arcTo(px+w,py,px+w,py+h,r);x.arcTo(px+w,py+h,px,py+h,r);
+  x.arcTo(px,py+h,px,py,r);x.arcTo(px,py,px+w,py,r);x.closePath();
+}
+function wrap(ctx,text,maxW){
+  var out=[];
+  text.split('\n').forEach(function(p){
+    if(!p.trim()){out.push('');return;}
+    var line='';
+    p.split(/\s+/).forEach(function(w){
+      var t=line?line+' '+w:w;
+      if(ctx.measureText(t).width>maxW&&line){out.push(line);line=w;}else line=t;
+    });
+    out.push(line);
+  });
+  return out;
+}
+/* deco en canvas — misma receta que el CSS */
+function paintDeco(x,d,X,Y,W,H,sp){
+  var g,i;
+  switch(d.t){
+    case 'sheen':
+      g=x.createRadialGradient(X+W*.82,Y+H*1.12,0,X+W*.82,Y+H*1.12,W*1.1);
+      g.addColorStop(0,d.c);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(X,Y,W,H);break;
+    case 'soft':
+      g=x.createRadialGradient(X+W*.3,Y,0,X+W*.3,Y,W*.9);
+      g.addColorStop(0,d.c);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(X,Y,W,H);break;
+    case 'inner':
+      g=x.createLinearGradient(X,Y,X,Y+H*.46);
+      g.addColorStop(0,d.c);g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(X,Y,W,H*.46);break;
+    case 'edge':
+      g=x.createLinearGradient(X+W,Y,X+W*.25,Y+H*.4);
+      g.addColorStop(0,'rgba(255,255,255,.16)');g.addColorStop(1,'rgba(255,255,255,0)');
+      x.fillStyle=g;x.fillRect(X,Y,W,H);break;
+    case 'dots':
+      x.fillStyle=d.c;
+      for(var py=Y+d.gap/2;py<Y+H;py+=d.gap)for(var px=X+d.gap/2;px<X+W;px+=d.gap){
+        x.beginPath();x.arc(px,py,d.r,0,Math.PI*2);x.fill();
+      }break;
+    case 'scan':
+      x.fillStyle=d.c;
+      for(i=Y;i<Y+H;i+=3)x.fillRect(X,i,W,1);break;
+    case 'corner':
+      g=x.createRadialGradient(X+W,Y,0,X+W,Y,W*.8);
+      g.addColorStop(0,d.c);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(X,Y,W,H);break;
+    case 'shine':
+      g=x.createRadialGradient(X+W*1.1,Y+H*.3,0,X+W*1.1,Y+H*.3,W*.85);
+      g.addColorStop(0,d.c);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(X,Y,W,H);break;
+    case 'mesh':
+      g=x.createRadialGradient(X+W*.18,Y+H*.08,0,X+W*.18,Y+H*.08,W*.75);
+      g.addColorStop(0,d.a);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(X,Y,W,H);
+      g=x.createRadialGradient(X+W*.92,Y+H*.96,0,X+W*.92,Y+H*.96,W*.8);
+      g.addColorStop(0,d.b);g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(X,Y,W,H);break;
+    case 'ruled':
+      x.fillStyle=d.c;
+      for(i=Y+(d.from||0);i<Y+H;i+=d.gap)x.fillRect(X,i,W,1);break;
+    case 'vline':
+      x.fillStyle=d.c;x.fillRect(X+d.x,Y,1,H);break;
+    case 'band':
+      x.fillStyle=d.c;x.fillRect(X,Y+(d.off||0),W,d.h);break;
+    case 'bar':
+      x.fillStyle=d.c;x.fillRect(X,Y+H-d.h,W,d.h);break;
+    case 'grooves':
+      var cx=X+53,cy=Y+55,max=Math.sqrt(Math.pow(Math.max(cx-X,X+W-cx),2)+Math.pow(Math.max(cy-Y,Y+H-cy),2));
+      x.lineWidth=1;
+      for(var r=32;r<max;r+=4){
+        x.strokeStyle='rgba(255,255,255,'+(r%16<4?.1:.055)+')';
+        x.beginPath();x.arc(cx,cy,r,0,Math.PI*2);x.stroke();
+      }break;
+    case 'grain':
+      var pat=x.createPattern(NOISE,'repeat');
+      x.globalAlpha=d.a||1;x.fillStyle=pat;x.fillRect(X,Y,W,H);x.globalAlpha=1;break;
+  }
+}
+function draw(){
+  var S=3,CW=400,M=26,W=CW+M*2,sp=spec;
+  var padX=sp.px||24,padT=sp.pt||26,padB=sp.pb||30;
+  var g=fonts[fi],fsize=sizes[si],t=current;
+  var lyricText=(lyrics.innerText||'').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+  var titleText=titleEl.innerText.trim(),artistText=artistEl.innerText.trim();
+  if(sp.upper)titleText=titleText.toUpperCase();
+
+  var m=document.createElement('canvas').getContext('2d'),famQ='"'+g.n+'"';
+  m.font=g.i+' '+(sp.weight||g.w)+' '+fsize+'px '+famQ;
+  if('letterSpacing' in m)m.letterSpacing=(g.sn*fsize).toFixed(2)+'px';
+  var lines=wrap(m,lyricText,CW-padX*2),lh=fsize*1.34;
+  var lyricsH=Math.max(150,lines.length*lh),headH=58,gap=sp.rule?41:26;
+  var cardH=padT+headH+gap+lyricsH+padB,H=cardH+M*2;
+
+  var c=document.createElement('canvas');c.width=W*S;c.height=H*S;
+  var x=c.getContext('2d');x.scale(S,S);
+
+  var lg=x.createLinearGradient(0,0,W*.6,H);
+  lg.addColorStop(0,t.b1);lg.addColorStop(1,'#0d0014');
+  x.fillStyle=lg;x.fillRect(0,0,W,H);
+  function blob(cx,cy,r,col,a){
+    var rg=x.createRadialGradient(cx,cy,0,cx,cy,r);
+    rg.addColorStop(0,hexa(col,a));rg.addColorStop(1,hexa(col,0));
+    x.fillStyle=rg;x.fillRect(0,0,W,H);
+  }
+  blob(W*.15,0,W*.95,t.b2,.85);blob(W,H,W*.8,t.b1,.9);
+  blob(W*.02,H*.04,W*.55,t.a,.8);blob(W*.98,H*.9,W*.5,t.b,.75);
+  blob(W*.55,H*.5,W*.4,t.c,.45);
+
+  var X=M,Y=M,R=sp.r;
+  (sp.sh||[]).forEach(function(s){
+    x.save();x.shadowColor=s.c;x.shadowBlur=s.b;x.shadowOffsetX=s.x;x.shadowOffsetY=s.y;
+    rrect(x,X,Y,CW,cardH,R);
+    x.fillStyle=sp.fill?(sp.fill.k==='grad'?sp.fill.a:sp.fill.c):'rgba(0,0,0,0.001)';
+    x.fill();x.restore();
+  });
+  if(sp.fill){
+    rrect(x,X,Y,CW,cardH,R);
+    if(sp.fill.k==='grad'){
+      var fgr=x.createLinearGradient(X,Y,X+CW,Y+cardH);
+      fgr.addColorStop(0,sp.fill.a);fgr.addColorStop(1,sp.fill.b);x.fillStyle=fgr;
+    } else x.fillStyle=sp.fill.c;
+    x.fill();
+  }
+  x.save();rrect(x,X,Y,CW,cardH,R);x.clip();
+  (sp.deco||[]).forEach(function(d){paintDeco(x,d,X,Y,CW,cardH,sp);});
+  if(sp.gloss){
+    var hl=x.createLinearGradient(X,Y,X+CW*.75,Y+cardH*.5);
+    hl.addColorStop(0,'rgba(255,255,255,.2)');hl.addColorStop(.45,'rgba(255,255,255,0)');
+    x.fillStyle=hl;x.fillRect(X,Y,CW,cardH);
+  }
+  (sp.inset||[]).forEach(function(s){            // sombra interior
+    x.save();x.shadowColor=s.c;x.shadowBlur=s.b;x.shadowOffsetX=s.x;x.shadowOffsetY=s.y;
+    x.lineWidth=8;x.strokeStyle='rgba(0,0,0,1)';
+    rrect(x,X-4,Y-4,CW+8,cardH+8,R+4);x.stroke();x.restore();
+  });
+  if(sp.topline){
+    x.strokeStyle='rgba(255,255,255,.4)';x.lineWidth=1.4;
+    x.beginPath();x.moveTo(X+R,Y+.7);x.lineTo(X+CW-R,Y+.7);x.stroke();
+  }
+  x.restore();
+  if(sp.stroke){
+    var w=sp.stroke.w;
+    rrect(x,X+w/2,Y+w/2,CW-w,cardH-w,Math.max(0,R-w/2));
+    x.strokeStyle=sp.stroke.c;x.lineWidth=w;x.stroke();
+  }
+  if(sp.stitch){
+    x.save();x.setLineDash([6,5]);x.strokeStyle='rgba(255,255,255,.3)';x.lineWidth=1.6;
+    rrect(x,X+9,Y+9,CW-18,cardH-18,Math.max(0,R-6));x.stroke();x.restore();
+  }
+
+  // portada
+  var covX=X+padX,covY=Y+padT,CS=58;
+  x.save();
+  if(sp.coverR==='circle'){x.beginPath();x.arc(covX+CS/2,covY+CS/2,CS/2,0,Math.PI*2);x.clip();}
+  else {rrect(x,covX,covY,CS,CS,sp.coverR);x.clip();}
+  var img=coverEl.querySelector('img');
+  if(img&&img.complete&&img.naturalWidth){
+    var sc=Math.max(CS/img.naturalWidth,CS/img.naturalHeight);
+    var dw=img.naturalWidth*sc,dh=img.naturalHeight*sc;
+    x.drawImage(img,covX+(CS-dw)/2,covY+(CS-dh)/2,dw,dh);
+  } else {
+    var cg=x.createLinearGradient(covX,covY,covX+CS,covY+CS);
+    cg.addColorStop(0,'#a12bff');cg.addColorStop(.6,'#ff5ec7');cg.addColorStop(1,'#4a0f7a');
+    x.fillStyle=cg;x.fillRect(covX,covY,CS,CS);
+  }
+  x.restore();
+  if(sp.disc){                                   // agujero del vinilo
+    x.beginPath();x.arc(covX+CS/2,covY+CS/2,4,0,Math.PI*2);
+    x.fillStyle='rgba(0,0,0,.8)';x.fill();
+    x.lineWidth=3;x.strokeStyle='rgba(255,255,255,.18)';x.stroke();
+  }
+  x.save();
+  if(sp.coverR==='circle')x.beginPath(),x.arc(covX+CS/2,covY+CS/2,CS/2-.5,0,Math.PI*2);
+  else rrect(x,covX+.5,covY+.5,CS-1,CS-1,sp.coverR);
+  x.strokeStyle=sp.stroke?sp.stroke.c:'rgba(255,255,255,.3)';x.lineWidth=1;x.stroke();x.restore();
+
+  // cabecera
+  var tx=covX+CS+14,maxT=CW-padX*2-CS-14-30;
+  x.textBaseline='alphabetic';
+  x.save();rrect(x,tx,covY,maxT,CS,0);x.clip();
+  if('letterSpacing' in x)x.letterSpacing=sp.upper?'0.6px':'-0.47px';
+  x.font=(sp.upper?'700':'600')+' 19px '+famQ+',"Plus Jakarta Sans",sans-serif';
+  x.fillStyle=sp.fg;if(titleText)x.fillText(titleText,tx,covY+26);
+  if('letterSpacing' in x)x.letterSpacing='0px';
+  x.font='400 13.5px "Plus Jakarta Sans",system-ui,sans-serif';
+  x.fillStyle=sp.mut;if(artistText)x.fillText(artistText,tx,covY+45);
+  x.restore();
+
+  // filete
+  if(sp.rule){
+    x.fillStyle=sp.rule.c;
+    var rw=sp.rule.w==='full'?CW-padX*2:sp.rule.w;
+    x.fillRect(X+padX,covY+CS+20,rw,1);
+  }
+  // letra
+  var ly=Y+padT+headH+gap;
+  x.font=g.i+' '+(sp.weight||g.w)+' '+fsize+'px '+famQ+',sans-serif';
+  if('letterSpacing' in x)x.letterSpacing=(g.sn*fsize).toFixed(2)+'px';
+  x.fillStyle=sp.fg;
+  if(sp.glow){x.shadowColor=sp.glow;x.shadowBlur=18;}
+  else if(sp.tsh){x.shadowColor=sp.tsh;x.shadowBlur=14;x.shadowOffsetY=1;}
+  lines.forEach(function(ln,i){x.fillText(ln,X+padX,ly+lh*(i+.78));});
+  x.shadowColor='transparent';x.shadowBlur=0;x.shadowOffsetY=0;
+
+  var nm=(titleEl.innerText.trim()||'vitral').toLowerCase()
+    .replace(/[^a-z0-9áéíóúñ]+/g,'-').replace(/^-|-$/g,'');
+  return {canvas:c,name:(nm||'vitral')+'.png'};
+}
+
+var dlApi=null,lastBlob=null,lastName='vitral.png';
+if(window.claude&&claude.use){claude.use('downloads').then(function(d){dlApi=d;}).catch(function(){});}
+var dlBtn=document.getElementById('dl');
+dlBtn.addEventListener('click',function(){
+  dlBtn.disabled=true;
+  var go=function(){
+    try{
+      var r=draw();
+      r.canvas.toBlob(function(blob){
+        lastBlob=blob;lastName=r.name;
+        document.getElementById('ovImg').src=URL.createObjectURL(blob);
+        document.getElementById('overlay').classList.add('on');
+        dlBtn.disabled=false;
+      },'image/png');
+    }catch(e){dlBtn.disabled=false;alert('No se pudo generar la imagen.');}
+  };
+  if(document.fonts&&document.fonts.load){
+    var g=fonts[fi];
+    Promise.all([
+      document.fonts.load(g.i+' '+g.w+' '+sizes[si]+'px "'+g.n+'"'),
+      document.fonts.load('600 19px "'+g.n+'"'),
+      document.fonts.load('700 19px "'+g.n+'"'),
+      document.fonts.load('400 14px "Plus Jakarta Sans"')
+    ]).then(go).catch(go);
+  } else go();
+});
+var ovDl=document.getElementById('ovDl'),ovTip=document.getElementById('ovTip');
+ovDl.addEventListener('click',function(){
+  if(!lastBlob)return;
+  if(dlApi&&dlApi.save){
+    ovDl.disabled=true;ovDl.textContent='Guardando…';
+    dlApi.save({filename:lastName,data:lastBlob}).then(function(){
+      ovDl.disabled=false;ovDl.textContent='Descargar PNG';ovTip.textContent='Guardada ✓';
+    }).catch(function(err){
+      ovDl.disabled=false;ovDl.textContent='Descargar PNG';
+      ovTip.textContent=(err&&err.code)==='declined'?'Cancelaste la descarga.':
+        'No se pudo descargar aquí. Mantén pulsada la imagen para guardarla.';
+    });
+  } else {
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(lastBlob);a.download=lastName;
+    document.body.appendChild(a);a.click();a.remove();
+    ovTip.textContent='Si no se descargó, mantén pulsada la imagen para guardarla.';
+  }
+});
+document.getElementById('ovClose').addEventListener('click',function(){
+  document.getElementById('overlay').classList.remove('on');
+  ovTip.textContent='En el móvil también puedes mantener pulsada la imagen para guardarla.';
+});
+document.getElementById('overlay').addEventListener('click',function(e){
+  if(e.target===this)this.classList.remove('on');
+});
+
+Array.prototype.forEach.call(document.querySelectorAll('[contenteditable]'),function(el){
+  el.addEventListener('input',function(){if(!el.textContent.trim())el.innerHTML='';});
+});
+document.addEventListener('paste',function(e){
+  var el=document.activeElement;
+  if(!el||!el.isContentEditable)return;
+  e.preventDefault();
+  document.execCommand('insertText',false,(e.clipboardData||window.clipboardData).getData('text'));
+});
+
+applyStyle(0);setFont(0);setSize(0);refreshSwatches();
+})();
+</script>
+</body>
+</html>
