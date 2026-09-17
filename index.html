@@ -166,6 +166,14 @@
     border-radius:18px;padding:12px 14px;outline:none;-webkit-appearance:none}
   #lyrPaste::placeholder{color:rgba(255,255,255,.45)}
   .lyr-row{display:flex;gap:8px}
+  .as-btn{
+    display:flex;align-items:center;justify-content:center;text-align:center;text-decoration:none;
+    font-family:inherit;font-size:13px;font-weight:500;color:var(--text);
+    background:var(--glass-strong);border:1px solid var(--stroke);
+    padding:10px 16px;border-radius:999px;cursor:pointer;
+  }
+  .as-btn:active{transform:scale(.97)}
+  .as-btn.off{opacity:.45;pointer-events:none}
   .lyr-row button{flex:1}
   .credit{font-size:10.5px;color:var(--muted);text-align:center;margin:0;line-height:1.45;opacity:.85}
   .lines{display:flex;flex-direction:column;gap:7px;flex:1;min-height:0;
@@ -252,7 +260,7 @@
     <div class="paste-wrap" id="pasteWrap">
       <button type="button" id="fetchLyr" hidden>Traer letra de la canción</button>
       <div class="lyr-row">
-        <button type="button" id="openLyr">Abrir letra ↗</button>
+        <a id="openLyr" class="as-btn" target="_blank" rel="noopener">Abrir letra ↗</a>
         <button type="button" id="clipBtn">Pegar</button>
       </div>
       <textarea id="lyrPaste" placeholder="Pega aquí la letra (una línea por renglón)…"></textarea>
@@ -694,6 +702,7 @@ function pick(it){
   titleEl.textContent=it.title;artistEl.textContent=it.artists;
   if(it.cover)setCover(it.cover);
   resBox.innerHTML='';qInput.value='';lastQ='';qInput.blur();
+  prepLyrLink();
 }
 function render(items){
   resBox.classList.remove('dim');resBox.innerHTML='';
@@ -862,23 +871,28 @@ function pullClipboard(silent){
 }
 clipBtn.addEventListener('click',function(){pullClipboard(false);});
 
-document.getElementById('openLyr').addEventListener('click',function(){
+var openLyr=document.getElementById('openLyr');
+function searchUrl(){
   var t=titleEl.innerText.trim(),a=artistEl.innerText.trim();
-  if(!t){lyrCount.textContent='Primero elige una canción en el buscador.';return;}
-  var first=a.split(',')[0].trim();
-  var fallback='https://genius.com/search?q='+encodeURIComponent(first+' '+t);
-  awaiting=songKey();                             // esperamos la letra de esta canción
-  var win=window.open('about:blank','_blank');
-  lyrCount.textContent='Buscando la canción…';
-  var go=function(url){
-    if(win)win.location=url; else window.open(url,'_blank','noopener');
-    lyrCount.textContent='Copia la letra y vuelve: se pega sola.';
-  };
-  if(!SRC.genius){go(fallback);return;}
+  if(!t)return '';
+  return 'https://genius.com/search?q='+encodeURIComponent(a.split(',')[0].trim()+' '+t);
+}
+function prepLyrLink(){
+  var t=titleEl.innerText.trim(),a=artistEl.innerText.trim();
+  if(!t){openLyr.classList.add('off');openLyr.removeAttribute('href');return;}
+  openLyr.classList.remove('off');
+  openLyr.href=searchUrl();                       // listo ya, por si tocan de inmediato
+  if(!SRC.genius)return;
+  var key=songKey();
   fetch('/api/genius?title='+encodeURIComponent(t)+'&artist='+encodeURIComponent(a))
     .then(function(r){return r.ok?r.json():Promise.reject();})
-    .then(function(j){go(j.url||fallback);})
-    .catch(function(){go(fallback);});
+    .then(function(j){ if(j.url&&songKey()===key)openLyr.href=j.url; })   // se afina si llega a tiempo
+    .catch(function(){});
+}
+openLyr.addEventListener('click',function(){
+  if(!openLyr.getAttribute('href'))return;
+  awaiting=songKey();
+  lyrCount.textContent='Copia la letra y vuelve: se pega sola.';
 });
 
 document.addEventListener('visibilitychange',function(){
@@ -891,6 +905,7 @@ document.addEventListener('visibilitychange',function(){
 
 document.getElementById('pickLyr').addEventListener('click',function(){
   lyrOv.classList.add('on');
+  prepLyrLink();
   if(!lyrPaste.value.trim()&&awaiting===songKey())pullClipboard(true);
   setTimeout(function(){lyrPaste.focus();},80);
 });
@@ -1176,7 +1191,7 @@ document.addEventListener('paste',function(e){
   document.execCommand('insertText',false,(e.clipboardData||window.clipboardData).getData('text'));
 });
 
-applyStyle(0);setFont(0);setSize(0);refreshSwatches();
+applyStyle(0);setFont(0);setSize(0);refreshSwatches();prepLyrLink();
 })();
 </script>
 </body>
