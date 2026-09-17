@@ -1,0 +1,9 @@
+{
+  "name": "vitral",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tarjetas de letras con los colores de la portada",
+  "dependencies": {
+    "@vercel/og": "^0.6.2"
+  }
+}

@@ -27,6 +27,10 @@ api/cover.js      GET /api/cover?u=...  proxy de portadas
 api/lyrics.js     GET /api/lyrics?title=...&artist=...
 api/genius.js     GET /api/genius?title=...&artist=...  resuelve el enlace
 api/health.js     GET /api/health
+api/og.js         GET /api/og?c=...   imagen de vista previa de los enlaces
+manifest.json     PWA: instalable en la pantalla de inicio
+sw.js             service worker: armazón y portadas sin conexión
+icon-*.png        iconos de la app
 ```
 
 Si no hay backend, `index.html` funciona igual en modo manual: escribes el título
@@ -127,3 +131,46 @@ expone el texto de las letras, y este endpoint tampoco lo toca.
 
 Sin el token todo sigue funcionando, solo que el botón abre la búsqueda de Genius
 en lugar de la canción exacta.
+
+## Instalable (PWA)
+
+`manifest.json` y `sw.js` hacen que se pueda instalar en la pantalla de inicio y
+que abra sin barra del navegador. El service worker guarda el armazón de la app y
+las portadas ya vistas, así que el historial se sigue viendo sin conexión. Las
+llamadas a `/api/` nunca se cachean.
+
+Al publicar cambios, sube la versión en la constante `VERSION` de `sw.js` para que
+los navegadores descarten la caché vieja.
+
+## Foto de fondo
+
+La foto **nunca sale del navegador**: no se sube a Vercel ni a ningún sitio. El
+archivo se valida por tipo y tamaño (máximo 12 MB, solo PNG/JPG/WEBP/GIF), se
+redibuja en un canvas —lo que descarta los metadatos EXIF, ubicación GPS incluida—
+y se reduce a 1600 px como máximo.
+
+En el panel de Diseño hay una vista previa con un recuadro punteado que marca lo
+que entra según el formato elegido. Arrastrando dentro eliges qué parte de la foto
+se ve, y hay controles de zoom y desenfoque. Como el recorte se calcula al
+dibujar, una foto vertical funciona igual en formato Historia que en Tarjeta: solo
+cambia la parte visible.
+
+## Historial
+
+Las últimas 8 tarjetas se guardan en `localStorage` con una miniatura, y aparecen
+bajo la tarjeta. Al tocar una se restaura título, artistas, letra, estilo,
+tipografía, tamaño, color y portada. No se guarda la foto de fondo, porque ocuparía
+demasiado espacio.
+
+## Enlaces compartibles
+
+El botón "Copiar enlace" de la vista previa genera una URL con todo el estado
+codificado en el parámetro `?c=`. No hay base de datos: la tarjeta viaja en el
+propio enlace. Al abrirlo, la app se reconstruye sola.
+
+`api/og.js` usa `@vercel/og` para dibujar la miniatura que muestran WhatsApp,
+Telegram o Discord al pegar el enlace. Necesita que Vercel instale la dependencia
+del `package.json`, cosa que hace sola al desplegar. Si esa función fallara, el
+enlace sigue funcionando: solo se vería sin vista previa.
+
+La foto de fondo no viaja en el enlace (sería enorme); sí el resto.
