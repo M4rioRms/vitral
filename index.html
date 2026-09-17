@@ -777,21 +777,37 @@ function countTxt(){
 }
 var MAX=6;
 function clean(txt){
-  return txt.split('\n').map(function(l){
-    return l.replace(/\u00a0/g,' ')
-            .replace(/\[[^\]]*\]/g,'')          // [Coro], [Verso 1], [Puente]
-            .replace(/\d*\s*Embed\s*$/i,'')      // basura de Genius al copiar
-            .replace(/^\s*\d+\s*Contributors?.*$/i,'')
-            .replace(/^You might also like$/i,'')
-            .replace(/^Letra de .*$/i,'')
-            .replace(/^Lyrics$/i,'')
-            .trim();
-  }).filter(Boolean);
+  var lines=txt.split('\n').map(function(l){return l.replace(/\u00a0/g,' ').trim();});
+
+  // si pegaste la página entera, recorta al bloque de la letra
+  var start=-1,end=-1,i;
+  for(i=0;i<lines.length;i++){
+    if(/^(letra de|.+\blyrics)\b/i.test(lines[i])||/^letra\s*$/i.test(lines[i])){start=i+1;break;}
+  }
+  if(start>-1){
+    for(i=start;i<lines.length;i++){
+      if(/\d*\s*Embed\s*$/i.test(lines[i])||/^(About|Acerca de|Créditos|Credits)\b/i.test(lines[i])){end=i;break;}
+    }
+    lines=lines.slice(start,end>-1?end:lines.length);
+  }
+
+  var out=[],blanks=0;
+  lines.forEach(function(l){
+    l=l.replace(/\[[^\]]*\]/g,'')                       // [Coro], [Verso 1]
+       .replace(/\d*\s*Embed\s*$/i,'')
+       .replace(/^\s*\d+\s*Contributors?.*$/i,'')
+       .replace(/^(You might also like|Te podría gustar)$/i,'')
+       .replace(/^(Translations?|Traducciones)$/i,'')
+       .replace(/^letra de .*/i,'').replace(/^.+\blyrics$/i,'')
+       .replace(/^(Read More|Leer más|Sign Up|Iniciar sesión|Search|Buscar)$/i,'')
+       .replace(/^\d+$/,'')                                // numeritos sueltos
+       .trim();
+    if(!l){blanks++;return;}
+    if(l.length>120&&/[.;:]\s/.test(l))return;             // párrafos de prosa, no letra
+    blanks=0;out.push(l);
+  });
+  return out;
 }
-var pasteWrap=document.getElementById('pasteWrap');
-document.getElementById('editLyr').addEventListener('click',function(){
-  pasteWrap.classList.remove('done');lyrPaste.focus();
-});
 lyrPaste.addEventListener('input',function(){
   var raw=clean(lyrPaste.value);
   pasteWrap.classList.toggle('done',raw.length>2);
