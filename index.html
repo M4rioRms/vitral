@@ -42,6 +42,13 @@
     display:flex;flex-direction:column;align-items:center;
     padding:20px 16px 40px;overflow-x:hidden;
   }
+  #spark{
+    position:fixed;right:14px;bottom:14px;width:124px;height:124px;z-index:4;
+    cursor:pointer;opacity:.9;border-radius:50%;
+    -webkit-tap-highlight-color:transparent;transition:opacity .3s,transform .3s;
+  }
+  #spark:hover{opacity:1;transform:scale(1.05)}
+  @media (max-width:420px){#spark{width:96px;height:96px;right:8px;bottom:8px;opacity:.8}}
   #bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:none;pointer-events:none}
   #bg.on{display:block}
   .grain{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;background-repeat:repeat}
@@ -274,14 +281,20 @@
   /* tarjeta */
   .card{
     position:relative;padding:26px 24px 30px;overflow:hidden;
-    border:1px solid transparent;
-    transition:background .3s,box-shadow .3s,border-radius .3s,border-color .3s;
+    border:1px solid transparent;min-height:200px;
+    transition:box-shadow .3s,border-radius .3s,border-color .3s;
   }
+  /* el estilo se pinta aquí, no sobre la tarjeta: así nunca tapa el contenido */
+  .cardbg{
+    position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none;
+    background-repeat:no-repeat;
+  }
+  .card > .head,.card > .rule,.card > .lyrics{position:relative;z-index:2}
   .card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;
     background:linear-gradient(140deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 42%)}
-  .card.gloss::after{opacity:1}
+  .card.gloss::after{opacity:1;z-index:1}
   .card.stitch::before{content:"";position:absolute;inset:9px;border-radius:inherit;pointer-events:none;
-    border:1.6px dashed rgba(255,255,255,.3)}
+    border:1.6px dashed rgba(255,255,255,.3);z-index:1}
   .dl{
     position:absolute;top:12px;right:12px;z-index:5;width:32px;height:32px;padding:0;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
@@ -331,6 +344,7 @@
     background:rgba(0,0,0,.75);box-shadow:0 0 0 3px rgba(255,255,255,.18);display:none}
   .card.disc .cover .hole{display:block}
   .meta{min-width:0;flex:1}
+  .title,.artists{position:relative;z-index:2}
   .title{font-family:var(--font-display);font-size:19px;font-weight:600;letter-spacing:-.025em;line-height:1.2;overflow:hidden}
   .artists{font-size:13.5px;font-weight:400;color:var(--muted);margin-top:3px;line-height:1.3;overflow:hidden}
   .title:empty::before,.artists:empty::before{content:attr(data-ph);color:currentColor;opacity:.45;font-weight:400}
@@ -544,6 +558,7 @@
 </head>
 <body>
 <canvas id="bg" aria-hidden="true"></canvas>
+<canvas id="spark" width="140" height="140" title="Acércate"></canvas>
 <div class="grain" id="bgGrain" aria-hidden="true"></div>
 <div class="blobs" id="blobs"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
 
@@ -589,6 +604,7 @@
 
   <div class="frame" id="frame">
   <div class="card gloss" id="card">
+    <div class="cardbg" id="cardBg"></div>
     <button class="dl fmt" id="fmtBtn" title="Formato" type="button">
       <span id="fmtIcon" class="fi fi-card"></span>
       <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
@@ -981,7 +997,7 @@ function toneFrom(h,name,grey){
 var tones=TONE_DEFS.map(function(d){return toneFrom(d[0],d[1],d[2]);});
 var current=tones[18],root=document.documentElement.style;
 function applyTone(t){
-  current=t;
+  current=t;window.__vitralTone=t;
   root.setProperty('--bg-1',t.b1);root.setProperty('--bg-2',t.b2);
   root.setProperty('--blob-a',t.a);root.setProperty('--blob-b',t.b);root.setProperty('--blob-c',t.c);
   document.body.style.backgroundImage=
@@ -1222,11 +1238,13 @@ function applyStyle(i){
   });
   var fg2=fillCss(spec.fill);
   if(fg2){imgs.push(fg2);sizes2.push('auto');poss.push('0 0');reps.push('no-repeat');}
-  card.style.backgroundColor=(spec.fill&&spec.fill.k==='solid')?spec.fill.c:'transparent';
-  card.style.backgroundImage=imgs.join(', ');
-  card.style.backgroundSize=sizes2.join(', ');
-  card.style.backgroundPosition=poss.join(', ');
-  card.style.backgroundRepeat=reps.join(', ');
+  var bg=document.getElementById('cardBg');
+  bg.style.backgroundColor=(spec.fill&&spec.fill.k==='solid')?spec.fill.c:'transparent';
+  bg.style.backgroundImage=imgs.join(', ');
+  bg.style.backgroundSize=sizes2.join(', ');
+  bg.style.backgroundPosition=poss.join(', ');
+  bg.style.backgroundRepeat=reps.join(', ');
+  card.style.background='transparent';
   var sh=(spec.sh||[]).map(function(s){return s.x+'px '+s.y+'px '+s.b+'px '+s.c;});
   (spec.inset||[]).forEach(function(s){sh.push('inset '+s.x+'px '+s.y+'px '+s.b+'px '+s.c);});
   card.style.boxShadow=sh.join(',')||'none';
@@ -1971,6 +1989,110 @@ function draw(S){
 
 
 
+
+
+/* ===== corazón de partículas en 3D: se deshace al acercarte y se rehace al salir ===== */
+(function(){
+  var cv=document.getElementById('spark');
+  if(!cv)return;
+  var x=cv.getContext('2d');
+  var N=140,dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=N*dpr;cv.height=N*dpr;x.scale(dpr,dpr);
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function tint(){
+    var c=(window.__vitralTone||{});
+    return [c.a||'#e93cff',c.c||'#ff6ad5',c.b||'#7b2bff','#ffffff'];
+  }
+
+  /* nube de puntos con forma de corazón: se aceptan los que caen dentro de
+     (x²+y²−1)³ − x²y³ ≤ 0, y se les da grosor según lo adentro que estén */
+  function heartPoint(){
+    for(var t=0;t<300;t++){
+      var px=(Math.random()*2.7-1.35), py=(Math.random()*2.5-1.1);
+      var a=px*px+py*py-1;
+      var f=a*a*a - px*px*py*py*py;
+      if(f<=0){
+        var hondo=Math.min(1,Math.pow(-f,.28));        // 0 en el borde, 1 en el centro
+        var pz=(Math.random()*2-1)*.52*hondo;
+        return [px,py,pz];
+      }
+    }
+    return [0,0,0];
+  }
+
+  var R=41, bits=[], i;
+  for(i=0;i<230;i++){
+    var h=heartPoint();
+    bits.push({
+      hx:h[0]*R, hy:-h[1]*R, hz:h[2]*R,                // y invertida: el pico abajo
+      ox:0,oy:0,oz:0, vx:0,vy:0,vz:0,
+      r:.6+Math.random()*1.5,
+      c:tint()[(Math.random()*4)|0],
+      ph:Math.random()*Math.PI*2
+    });
+  }
+
+  var scatter=0, target=0, ang=0, t0=performance.now(), raf=null;
+  cv.addEventListener('mouseenter',function(){target=1;});
+  cv.addEventListener('mouseleave',function(){target=0;});
+  cv.addEventListener('touchstart',function(){          // en móvil, al tocar
+    target=1;setTimeout(function(){target=0;},900);
+  },{passive:true});
+  cv.addEventListener('click',function(){
+    target=1;setTimeout(function(){target=0;},700);
+  });
+
+  function frame(now){
+    var dt=Math.min(34,now-t0);t0=now;
+    scatter+=(target-scatter)*Math.min(1,dt/150);      // transición suave
+    ang+=dt*0.00042;
+    x.clearRect(0,0,N,N);
+    x.globalCompositeOperation='lighter';
+
+    var cos=Math.cos(ang),sin=Math.sin(ang),f=210;
+    var orden=[];
+    for(i=0;i<bits.length;i++){
+      var b=bits[i];
+      if(scatter>.01){                                  // empuje hacia afuera
+        var d=Math.hypot(b.hx,b.hy,b.hz)||1;
+        var k=scatter*0.05*dt/16;
+        b.vx+=(b.hx/d+(Math.random()-.5)*1.6)*k;
+        b.vy+=(b.hy/d+(Math.random()-.5)*1.6)*k-scatter*.012*dt/16;
+        b.vz+=(b.hz/d+(Math.random()-.5)*1.6)*k;
+      }
+      b.vx+=-b.ox*0.012*dt/16;                          // resorte de vuelta a casa
+      b.vy+=-b.oy*0.012*dt/16;
+      b.vz+=-b.oz*0.012*dt/16;
+      var damp=Math.pow(.90,dt/16);
+      b.vx*=damp;b.vy*=damp;b.vz*=damp;
+      b.ox+=b.vx*dt/16;b.oy+=b.vy*dt/16;b.oz+=b.vz*dt/16;
+
+      var wx=b.hx+b.ox, wy=b.hy+b.oy+Math.sin(now/900+b.ph)*.8, wz=b.hz+b.oz;
+      var rx=wx*cos-wz*sin, rz=wx*sin+wz*cos;           // giro sobre el eje vertical
+      var pe=f/(f+rz+60);
+      orden.push({sx:N/2+rx*pe, sy:N/2+wy*pe, s:pe, c:b.c, r:b.r});
+    }
+    orden.sort(function(p,q){return p.s-q.s;});         // los de atrás primero
+
+    for(i=0;i<orden.length;i++){
+      var o=orden[i], a=Math.min(1,(o.s-.55)*2.1);
+      if(a<=0)continue;
+      x.globalAlpha=a*.9;x.fillStyle=o.c;
+      x.beginPath();x.arc(o.sx,o.sy,o.r*o.s,0,Math.PI*2);x.fill();
+      x.globalAlpha=a*.13;
+      x.beginPath();x.arc(o.sx,o.sy,o.r*o.s*3.6,0,Math.PI*2);x.fill();
+    }
+    x.globalAlpha=1;x.globalCompositeOperation='source-over';
+    raf=requestAnimationFrame(frame);
+  }
+  function start(){if(!raf)raf=requestAnimationFrame(frame);}
+  function stop(){if(raf){cancelAnimationFrame(raf);raf=null;}}
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible'){t0=performance.now();start();} else stop();
+  });
+  if(reduce){ang=.35;frame(performance.now());stop();} else start();
+})();
 
 /* ===== cuentagotas sobre la portada ===== */
 var eyeOv=document.getElementById('eyeOv'),eyeCv=document.getElementById('eyeCv'),
