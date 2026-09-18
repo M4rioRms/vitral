@@ -82,8 +82,7 @@
     mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);
     -webkit-mask-image:linear-gradient(90deg,transparent,#000 22%,#000 78%,transparent);
   }
-  .foot-note p{margin:0;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);opacity:.6}
+  .foot-note{margin-top:30px;opacity:.5}
   body.dropping::after{
     content:"Suelta la foto aquí";position:fixed;inset:14px;z-index:70;
     border:2px dashed rgba(255,255,255,.55);border-radius:26px;
@@ -412,6 +411,29 @@
     width:auto;height:auto;object-fit:contain;border-radius:6px;
     box-shadow:0 6px 20px rgba(0,0,0,.4);
   }
+  .dprev-lbl{display:none}
+
+  /* en pantallas anchas: controles a la izquierda, tarjeta a la derecha */
+  @media (min-width:780px){
+    #styOv{padding:26px}
+    #styOv .ov-inner{max-width:920px}
+    #styOv .panel{
+      display:grid;grid-template-columns:minmax(0,1fr) 350px;
+      column-gap:28px;align-items:start;
+    }
+    #styOv .panel>h2{grid-column:1/-1;margin-bottom:6px}
+    #styOv .panel>*:not(h2):not(.dprev-col):not(.acts){grid-column:1}
+    #styOv .panel>.dprev-col{
+      grid-column:2;grid-row:2/span 60;position:sticky;top:0;
+      display:flex;flex-direction:column;
+    }
+    #styOv .panel>.acts{grid-column:1/-1;justify-content:center;margin-top:18px}
+    #styOv .dprev-lbl{display:block;margin:8px 0 6px;text-align:center}
+    #styOv .dprev{height:56vh;max-height:560px}
+    #styOv .styles{grid-template-columns:repeat(4,1fr)}
+    #styOv .tone-grid{grid-template-columns:repeat(12,1fr)}
+  }
+
   .dprev-sk{
     position:absolute;inset:0;background:linear-gradient(100deg,rgba(255,255,255,.05) 30%,
       rgba(255,255,255,.14) 50%,rgba(255,255,255,.05) 70%);
@@ -615,7 +637,10 @@
 <div class="overlay" id="styOv">
   <div class="ov-inner panel">
     <h2>Diseño</h2>
-    <div class="dprev"><img id="dprevImg" alt="Vista previa"><div class="dprev-sk" id="dprevSk"></div></div>
+    <div class="dprev-col">
+      <p class="sec dprev-lbl">Previsualización</p>
+      <div class="dprev"><img id="dprevImg" alt="Vista previa"><div class="dprev-sk" id="dprevSk"></div></div>
+    </div>
     <p class="sec">Estilo</p>
     <div class="styles" id="styGrid"></div>
     <p class="sec">Tipografía</p>
@@ -639,10 +664,7 @@
     <div class="tone-grid" id="toneGrid"></div>
     <div class="acts"><button type="button" id="styClose">Listo</button></div>
   </div>
-  <footer class="foot-note">
-    <span class="dotline"></span>
-    <p>Hecho para escuchar con los ojos</p>
-  </footer>
+  <footer class="foot-note"><span class="dotline"></span></footer>
 </div>
 
 <div class="overlay" id="eyeOv">
