@@ -142,7 +142,7 @@
 
   /* reproductor: adelanto de 30 s */
   .player{
-    display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 12px;
+    display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:11px 14px;
     border-radius:22px;position:relative;z-index:3;
     background:var(--glass);border:1px solid var(--stroke);
     backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
@@ -163,11 +163,12 @@
     background:rgba(0,0,0,.85);box-shadow:0 0 0 2px rgba(255,255,255,.16)}
   @keyframes spin{to{transform:rotate(360deg)}}
   .pl-body{flex:1;min-width:0}
-  .pl-meta b{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.015em;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pl-meta span{display:block;font-size:11.5px;color:var(--muted);
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pl-bar{display:flex;align-items:center;gap:7px;margin-top:5px;font-size:10px;color:var(--muted)}
+  .pl-meta b{display:block;font-size:13.5px;font-weight:600;letter-spacing:-.015em;line-height:1.25;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .pl-meta span{display:block;font-size:11.5px;color:var(--muted);line-height:1.3;margin-top:1px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .pl-bar{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:10px;color:var(--muted)}
+  .pl-bar span{flex:0 0 auto;font-variant-numeric:tabular-nums;opacity:.8}
   .pl-bar input[type=range]{
     flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:14px;background:none;outline:none;
   }
@@ -180,10 +181,18 @@
   .pl-bar input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;
     background:#fff;border:0;cursor:pointer}
   .pl-play{
-    flex:0 0 auto;width:38px;height:38px;padding:0;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.34);
+    flex:0 0 auto;width:42px;height:42px;padding:0;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    background:
+      radial-gradient(circle at 32% 26%, rgba(255,255,255,.35), rgba(255,255,255,.08) 60%) padding-box,
+      linear-gradient(140deg,var(--blob-a),var(--blob-b)) border-box;
+    border:1.5px solid transparent;
+    box-shadow:0 6px 16px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.4);
+    transition:transform .16s cubic-bezier(.34,1.4,.64,1), box-shadow .2s;
   }
+  .pl-play:hover{transform:scale(1.07);box-shadow:0 8px 20px rgba(0,0,0,.45), 0 0 18px var(--blob-a)}
+  .pl-play:active{transform:scale(.94)}
+  .player.playing .pl-play{box-shadow:0 6px 16px rgba(0,0,0,.4), 0 0 16px var(--blob-a)}
   @media (prefers-reduced-motion: reduce){.player.playing .disc{animation:none}}
 
   /* marco: lo que rodea a la tarjeta en la imagen final */
@@ -266,7 +275,7 @@
   .fmt-menu button i{font-size:11px;font-style:normal;color:rgba(255,255,255,.6)}
   .fmt-menu button.on{background:rgba(255,255,255,.18)}
   .fmt-menu button:hover{background:rgba(255,255,255,.12)}
-  .head{display:flex;align-items:center;gap:14px;position:relative;z-index:2;padding-right:34px}
+  .head{display:flex;align-items:center;gap:14px;position:relative;z-index:2;padding-right:100px;min-height:46px}
   .cover{
     width:58px;height:58px;flex:0 0 58px;border-radius:16px;overflow:hidden;cursor:pointer;position:relative;
     background:linear-gradient(135deg,#a12bff,#ff5ec7 60%,#4a0f7a);
@@ -302,6 +311,32 @@
   }
   button:active{transform:scale(.97)}
   button:hover{background:rgba(255,255,255,.28)}
+
+  /* botones principales — adaptado de Uiverse.io, con la paleta de la app */
+  .tools{gap:10px}
+  .tools button{
+    position:relative;overflow:hidden;isolation:isolate;
+    padding:12px 22px;font-size:13.5px;font-weight:600;letter-spacing:-.01em;border:0;
+    background:
+      linear-gradient(rgba(255,255,255,.16),rgba(255,255,255,.05)) padding-box,
+      linear-gradient(135deg,var(--blob-a),var(--blob-b) 60%,var(--blob-c)) border-box;
+    border:1.5px solid transparent;
+    box-shadow:0 8px 22px rgba(10,0,25,.38), inset 0 1px 0 rgba(255,255,255,.38);
+    transition:transform .16s cubic-bezier(.34,1.4,.64,1), box-shadow .22s;
+  }
+  .tools button::before{
+    content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .25s;
+    background:linear-gradient(135deg,var(--blob-a),var(--blob-b));
+  }
+  .tools button::after{
+    content:"";position:absolute;top:0;left:-60%;width:45%;height:100%;z-index:-1;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
+    transform:skewX(-18deg);transition:left .55s ease;
+  }
+  .tools button:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(10,0,25,.45), 0 0 18px var(--blob-a)}
+  .tools button:hover::before{opacity:.28}
+  .tools button:hover::after{left:130%}
+  .tools button:active{transform:translateY(0) scale(.97)}
   button[disabled]{opacity:.45;cursor:default}
   input[type=file]{display:none}
 
@@ -1720,7 +1755,7 @@ function draw(S){
   x.strokeStyle=sp.stroke?sp.stroke.c:'rgba(255,255,255,.3)';x.lineWidth=1;x.stroke();x.restore();
 
   // cabecera
-  var tx=covX+CS+14,maxT=CW-padX*2-CS-14-30;
+  var tx=covX+CS+14,maxT=CW-padX*2-CS-14-16;
   x.textBaseline='alphabetic';
   x.save();rrect(x,tx,covY,maxT,CS,0);x.clip();
   if('letterSpacing' in x)x.letterSpacing=sp.upper?'0.6px':'-0.47px';
@@ -1776,20 +1811,58 @@ function plStop(){
   PL.el.hidden=true;PL.el.classList.remove('playing');
   PL.icon.innerHTML=ICON_PLAY;PL.seek.value=0;PL.cur.textContent='0:00';
 }
+function plShow(j,title,artist,cover){
+  PL.audio.src=j.url;
+  PL.t.textContent=j.title||title;PL.a.textContent=j.artist||artist;
+  PL.art.style.backgroundImage=cover?'url('+cover+')':'';
+  PL.dur.textContent='0:30';
+  PL.el.hidden=false;
+}
+/* Apple responde con JSONP, así que sirve aunque no haya backend */
+function itunesJSONP(term,cb){
+  var cbName='vitralItunes'+Date.now();
+  var sc=document.createElement('script');
+  var timer=setTimeout(function(){cleanup();cb(null);},6000);
+  function cleanup(){clearTimeout(timer);try{delete window[cbName];}catch(e){window[cbName]=undefined;}
+    if(sc.parentNode)sc.parentNode.removeChild(sc);}
+  window[cbName]=function(data){cleanup();cb(data);};
+  sc.onerror=function(){cleanup();cb(null);};
+  sc.src='https://itunes.apple.com/search?media=music&entity=song&limit=12&term='+
+         encodeURIComponent(term)+'&callback='+cbName;
+  document.body.appendChild(sc);
+}
+function pickTrack(list,title,artist){
+  var n=function(v){return String(v||'').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'').replace(/\(.*?\)|\[.*?\]/g,'').replace(/[^a-z0-9]/g,'');};
+  var wt=n(title),wa=n(artist.split(',')[0]);
+  var best=null,bs=0;
+  (list||[]).forEach(function(x){
+    if(!x||!x.previewUrl)return;
+    var t=n(x.trackName),a=n(x.artistName),sc=0;
+    if(t===wt)sc+=4;else if(t.indexOf(wt)>-1||wt.indexOf(t)>-1)sc+=2;
+    if(wa&&(a.indexOf(wa)>-1||wa.indexOf(a)>-1))sc+=3;
+    if(sc>bs){bs=sc;best=x;}
+  });
+  return bs>=2&&best?{url:best.previewUrl,title:best.trackName,artist:best.artistName}:null;
+}
 function loadPreview(title,artist,cover){
   var my=++PL.token;
   plStop();
   if(!title)return;
+  var fallback=function(){
+    itunesJSONP((artist.split(',')[0].trim()+' '+title).trim(),function(data){
+      if(my!==PL.token||!data)return;
+      var hit=pickTrack(data.results,title,artist);
+      if(hit)plShow(hit,title,artist,cover);
+    });
+  };
   fetch('/api/preview?title='+encodeURIComponent(title)+'&artist='+encodeURIComponent(artist))
     .then(function(r){return r.ok?r.json():Promise.reject();})
     .then(function(j){
-      if(my!==PL.token||!j.url)return;             // llegó tarde: ya hay otra canción
-      PL.audio.src=j.url;
-      PL.t.textContent=title;PL.a.textContent=artist;
-      PL.art.style.backgroundImage=cover?'url('+cover+')':'';
-      PL.dur.textContent='0:30';
-      PL.el.hidden=false;
-    }).catch(function(){});                        // sin backend, sencillamente no aparece
+      if(my!==PL.token)return;
+      if(j&&j.url)plShow(j,title,artist,cover); else fallback();
+    })
+    .catch(function(){ if(my===PL.token)fallback(); });
 }
 PL.audio.addEventListener('error',function(){plStop();});
 PL.play.addEventListener('click',function(){
