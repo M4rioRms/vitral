@@ -142,14 +142,14 @@
 
   /* reproductor: adelanto de 30 s */
   .player{
-    display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:11px 14px;
+    display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:9px 12px;
     border-radius:22px;position:relative;z-index:3;
     background:var(--glass);border:1px solid var(--stroke);
     backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
     box-shadow:0 10px 28px rgba(20,0,40,.3);
   }
   .disc{
-    position:relative;width:46px;height:46px;flex:0 0 46px;border-radius:50%;
+    position:relative;width:40px;height:40px;flex:0 0 40px;border-radius:50%;
     background:
       repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.09) 0 1px, transparent 1px 3px),
       #0c0c0e;
@@ -157,7 +157,7 @@
     animation:spin 3.4s linear infinite;animation-play-state:paused;
   }
   .player.playing .disc{animation-play-state:running}
-  .disc-art{position:absolute;inset:12px;border-radius:50%;background-size:cover;
+  .disc-art{position:absolute;inset:10px;border-radius:50%;background-size:cover;
     background-position:center;background-color:var(--blob-b)}
   .disc-hole{position:absolute;inset:0;margin:auto;width:5px;height:5px;border-radius:50%;
     background:rgba(0,0,0,.85);box-shadow:0 0 0 2px rgba(255,255,255,.16)}
@@ -181,7 +181,7 @@
   .pl-bar input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;
     background:#fff;border:0;cursor:pointer}
   .pl-play{
-    flex:0 0 auto;width:42px;height:42px;padding:0;border-radius:50%;
+    flex:0 0 auto;width:40px;height:40px;padding:0;border-radius:50%;
     display:flex;align-items:center;justify-content:center;color:#fff;
     background:
       radial-gradient(circle at 32% 26%, rgba(255,255,255,.35), rgba(255,255,255,.08) 60%) padding-box,
@@ -193,6 +193,7 @@
   .pl-play:hover{transform:scale(1.07);box-shadow:0 8px 20px rgba(0,0,0,.45), 0 0 18px var(--blob-a)}
   .pl-play:active{transform:scale(.94)}
   .player.playing .pl-play{box-shadow:0 6px 16px rgba(0,0,0,.4), 0 0 16px var(--blob-a)}
+  @media (max-width:380px){.pl-bar span{display:none}}
   @media (prefers-reduced-motion: reduce){.player.playing .disc{animation:none}}
 
   /* marco: lo que rodea a la tarjeta en la imagen final */
@@ -204,6 +205,20 @@
   .frame > .card{position:relative;z-index:1}
 
   /* historial */
+  .rec-head{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px}
+  .trash{
+    width:30px;height:30px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,.62);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);
+    transition:all .2s cubic-bezier(.34,1.4,.64,1);
+  }
+  .trash:hover{
+    color:#fff;background:linear-gradient(140deg,#ff5c72,#c31432);border-color:rgba(255,120,140,.7);
+    box-shadow:0 4px 14px rgba(200,20,50,.5);transform:translateY(-1px) rotate(-8deg);
+  }
+  .trash:active{transform:scale(.9)}
+  .trash.ask{color:#fff;background:linear-gradient(140deg,#ff5c72,#c31432);
+    border-color:rgba(255,120,140,.8);width:auto;padding:0 12px;border-radius:999px;
+    font-size:11.5px;font-weight:600;gap:6px}
   .recent-row{display:flex;gap:8px;overflow-x:auto;padding:2px 0 6px;-webkit-overflow-scrolling:touch}
   .rec{
     flex:0 0 auto;width:62px;height:62px;border-radius:14px;overflow:hidden;padding:0;
@@ -302,7 +317,7 @@
   [contenteditable]{outline:none;border-radius:10px;transition:background .15s}
   [contenteditable]:focus{background:rgba(127,127,127,.16)}
 
-  .tools{margin-top:18px;display:flex;gap:8px;justify-content:center;position:relative;z-index:1}
+  .tools{margin-top:18px;display:flex;flex-wrap:wrap;gap:9px;justify-content:center;position:relative;z-index:1}
   button{
     font-family:inherit;font-size:13px;font-weight:500;color:var(--text);
     background:var(--glass-strong);border:1px solid var(--stroke);
@@ -357,14 +372,16 @@
   .sty.on{background:rgba(255,255,255,.28);border-color:rgba(255,255,255,.65)}
   .sw{display:block;width:100%;height:42px;margin-bottom:8px;background-color:#333}
   .dprev{
-    position:relative;width:100%;border-radius:18px;overflow:hidden;
+    position:relative;width:100%;height:33vh;min-height:170px;max-height:330px;
+    flex:0 0 auto;                       /* el panel ya no lo aplasta */
+    border-radius:18px;overflow:hidden;padding:8px;
     background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);
-    min-height:140px;max-height:42vh;padding:8px;
     display:flex;align-items:center;justify-content:center;
   }
   .dprev img{
-    display:block;max-width:100%;max-height:calc(42vh - 16px);
-    width:auto;height:auto;object-fit:contain;border-radius:8px;
+    display:block;max-width:100%;max-height:100%;
+    width:auto;height:auto;object-fit:contain;border-radius:6px;
+    box-shadow:0 6px 20px rgba(0,0,0,.4);
   }
   .dprev-sk{
     position:absolute;inset:0;background:linear-gradient(100deg,rgba(255,255,255,.05) 30%,
@@ -521,13 +538,19 @@
   </div>
 
   <div class="recent" id="recent" hidden>
-    <p class="sec" style="margin:14px 0 6px">Recientes</p>
+    <div class="rec-head">
+      <p class="sec" style="margin:0">Recientes</p>
+      <button type="button" id="recClear" class="trash" aria-label="Borrar recientes" title="Borrar recientes">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>
     <div class="recent-row" id="recentRow"></div>
   </div>
 
   <div class="tools">
     <button id="btnStyle">Diseño</button>
     <button id="pickLyr">Letra</button>
+    <button id="btnBg">Fondo</button>
     <button id="btnPop">Sin ideas</button>
   </div>
 </div>
@@ -547,6 +570,14 @@
     <p class="sec">Color</p>
     <div class="chips" style="margin-bottom:8px"><button type="button" class="chip" id="autoChip" disabled>De la portada</button></div>
     <div class="tone-grid" id="toneGrid"></div>
+    <div class="acts"><button type="button" id="styClose">Listo</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="bgOv">
+  <div class="ov-inner panel">
+    <h2>Foto de fondo</h2>
+    <p class="lyr-sub sec" style="text-transform:none;letter-spacing:0;font-size:12.5px;text-align:center;margin:2px 0 4px">La foto no sale de tu teléfono</p>
     <p class="sec">Foto de fondo</p>
     <div class="chips">
       <button type="button" class="chip" id="phPick">Subir foto</button>
@@ -562,7 +593,7 @@
     </div>
     <div class="rng"><b>Zoom</b><input type="range" id="phZoom" min="100" max="300" value="100"></div>
     <div class="rng"><b>Desenfoque</b><input type="range" id="phBlur" min="0" max="30" value="0"></div>
-    <div class="acts"><button type="button" id="styClose">Listo</button></div>
+    <div class="acts"><button type="button" id="bgClose">Listo</button></div>
   </div>
 </div>
 
@@ -851,6 +882,13 @@ function applyTone(t){
     'radial-gradient(120% 90% at 15% 0%, '+t.b2+' 0%, transparent 60%),'+
     'radial-gradient(100% 80% at 100% 100%, '+t.b1+' 0%, transparent 55%),'+
     'linear-gradient(160deg,'+t.b1+' 0%, #0d0014 100%)';
+  var fr=document.getElementById('frame');          // que la tarjeta no se funda con el fondo
+  if(fr)fr.style.backgroundImage=
+    'radial-gradient(95% 70% at 2% 4%, '+hexa(t.a,.8)+' 0%, transparent 62%),'+
+    'radial-gradient(85% 70% at 98% 92%, '+hexa(t.b,.75)+' 0%, transparent 62%),'+
+    'radial-gradient(70% 55% at 55% 50%, '+hexa(t.c,.45)+' 0%, transparent 62%),'+
+    'radial-gradient(120% 90% at 15% 0%, '+hexa(t.b2,.85)+' 0%, transparent 60%),'+
+    'linear-gradient(160deg,'+t.b1+' 0%, #0d0014 100%)';
   applyStyle(styIdx);refreshSwatches();
 }
 
@@ -1130,6 +1168,13 @@ function refreshSwatches(){
   autoChip.classList.toggle('on',!!current&&current.n==='Portada');
   queuePreview();
 }
+var bgOv=document.getElementById('bgOv');
+document.getElementById('btnBg').addEventListener('click',function(){
+  bgOv.classList.add('on');setTimeout(applyPhoto,60);      // recalcular la guía ya visible
+});
+document.getElementById('bgClose').addEventListener('click',function(){bgOv.classList.remove('on');});
+bgOv.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
+
 document.getElementById('btnStyle').addEventListener('click',function(){
   styOv.classList.add('on');queuePreview();
 });
@@ -2067,6 +2112,24 @@ function drawHistory(){
     recentRow.appendChild(b);
   });
 }
+var recClear=document.getElementById('recClear'),askTimer=null;
+recClear.addEventListener('click',function(){
+  if(!recClear.classList.contains('ask')){                  // primer toque: pedir confirmación
+    recClear.classList.add('ask');
+    recClear.innerHTML='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12l5 5L19 7"/></svg>Borrar todo';
+    clearTimeout(askTimer);
+    askTimer=setTimeout(function(){resetTrash();},3500);
+    return;
+  }
+  try{localStorage.removeItem(HKEY);}catch(e){}
+  resetTrash();drawHistory();
+});
+function resetTrash(){
+  clearTimeout(askTimer);
+  recClear.classList.remove('ask');
+  recClear.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V5h6v2"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>';
+}
+
 function snapshot(thumb){
   return {
     t:titleEl.innerText.trim(),a:artistEl.innerText.trim(),
