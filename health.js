@@ -10,13 +10,15 @@ module.exports = async (req, res) => {
     res.status(200).json({
       spotify: true,
       lyrics: !!process.env.MUSIXMATCH_KEY,
-      genius: !!process.env.GENIUS_TOKEN
+      genius: !!process.env.GENIUS_TOKEN,
+      autoDesign: !!process.env.ANTHROPIC_API_KEY
     });
   } catch (e) {
     res.status(200).json({
       spotify: false,
       lyrics: !!process.env.MUSIXMATCH_KEY,
       genius: !!process.env.GENIUS_TOKEN,
+      autoDesign: !!process.env.ANTHROPIC_API_KEY,
       error: String(e && e.message || e)
     });
   }

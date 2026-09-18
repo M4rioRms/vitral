@@ -29,6 +29,7 @@ api/genius.js     GET /api/genius?title=...&artist=...  resuelve el enlace
 api/health.js     GET /api/health
 api/og.js         GET /api/og?c=...   imagen de vista previa de los enlaces
 api/preview.js    GET /api/preview?title=...&artist=...  adelanto de 30 s
+api/design.js     POST /api/design  las tres propuestas de Auto Design
 manifest.json     PWA: instalable en la pantalla de inicio
 sw.js             service worker: armazón y portadas sin conexión
 icon-*.png        iconos de la app
@@ -55,6 +56,7 @@ a mano y subes la portada desde tu galería.
      - `SPOTIFY_MARKET` = `MX` (opcional, el país para los resultados)
      - `MUSIXMATCH_KEY` = tu clave de Musixmatch (opcional, para las letras)
      - `GENIUS_TOKEN` = tu Client Access Token de Genius (opcional, recomendado)
+     - `ANTHROPIC_API_KEY` = tu clave de Anthropic (opcional, para Auto Design)
    - Deploy.
 
 4. **Comprueba** que `https://tu-proyecto.vercel.app/api/health` responda
@@ -193,3 +195,41 @@ desarrollo el límite es de cinco personas. Para compartir con amigos no sirve.
 
 Si Apple no tiene la canción o no encuentra coincidencia clara, el reproductor
 simplemente no aparece. El resto de la app funciona igual.
+
+## Auto Design
+
+El botón ✨ aparece en cuanto eliges una canción. La primera vez sale una ventana
+preguntando si quieres probarlo; si dices que no, no vuelve a aparecer.
+
+Cómo funciona de verdad, sin simulaciones: se arma un contexto con el nombre de la
+canción, el artista, los cinco colores extraídos de la portada, cuántas líneas y
+caracteres tiene el fragmento, la línea más larga, el idioma detectado y el formato
+elegido. Con eso, la IA devuelve un array JSON de tres diseños con todos los
+parámetros visuales: composición, portada, tipografía, color, fondo, efectos y
+marco.
+
+Ese JSON se traduce a un `spec`, que es la misma estructura que usan los 16 estilos
+de la app. Por eso las propuestas se dibujan con el mismo motor que exporta el PNG:
+lo que ves en la miniatura es exactamente lo que se aplica.
+
+Tres redes de seguridad antes de pintar nada:
+
+- **Saneado**: cada número se recorta a su rango válido y cada color se valida como
+  hexadecimal. Si la IA devuelve basura, se usa el valor por defecto.
+- **Ajuste de texto**: se mide el fragmento con la tipografía y el tamaño propuestos.
+  Si no cabe en el formato elegido, baja el tamaño hasta que quepa. Si el fragmento
+  es muy corto, lo sube.
+- **Contraste**: se calcula la relación de luminancia entre el texto y el fondo. Si
+  baja de 3.2, el color del texto se cambia a blanco o casi negro según convenga.
+
+Dónde corre la IA: si la app se abre dentro de Claude, usa la capacidad de muestreo
+del propio entorno. En tu despliegue usa `api/design.js`, que necesita
+`ANTHROPIC_API_KEY`. Cada generación consume créditos de esa cuenta, así que tenlo
+en cuenta antes de repartir el enlace.
+
+Las direcciones estéticas (Auto, Minimal, Dark, Cinematic, Y2K, VHS, Glass,
+Editorial, Phonk, Romantic, Luxury) viajan en el contexto: la IA las respeta pero
+sigue decidiendo la composición por su cuenta.
+
+"Aplicar" vuelca el diseño al editor, así que después puedes seguir tocando todo a
+mano. "Regenerar" pide solo esa propuesta de nuevo.
