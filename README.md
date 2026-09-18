@@ -198,38 +198,40 @@ simplemente no aparece. El resto de la app funciona igual.
 
 ## Auto Design
 
-El botón ✨ aparece en cuanto eliges una canción. La primera vez sale una ventana
-preguntando si quieres probarlo; si dices que no, no vuelve a aparecer.
+El botón ✨ aparece al elegir una canción. Genera tres composiciones distintas y
+las muestra como miniaturas con "Aplicar" y "Regenerar".
 
-Cómo funciona de verdad, sin simulaciones: se arma un contexto con el nombre de la
-canción, el artista, los cinco colores extraídos de la portada, cuántas líneas y
-caracteres tiene el fragmento, la línea más larga, el idioma detectado y el formato
-elegido. Con eso, la IA devuelve un array JSON de tres diseños con todos los
-parámetros visuales: composición, portada, tipografía, color, fondo, efectos y
-marco.
+**Funciona sin conexión y sin claves.** No usa un modelo de lenguaje: es un motor
+generativo que vive en `index.html` y decide con reglas de diseño a partir de lo
+que la app ya sabe.
 
-Ese JSON se traduce a un `spec`, que es la misma estructura que usan los 16 estilos
-de la app. Por eso las propuestas se dibujan con el mismo motor que exporta el PNG:
-lo que ves en la miniatura es exactamente lo que se aplica.
+Qué entra en la decisión:
 
-Tres redes de seguridad antes de pintar nada:
+- Los cinco colores extraídos de la portada
+- La densidad del texto: caracteres, número de líneas y la línea más larga
+- El formato elegido (la altura disponible cambia según 1:1, 4:5 o 9:16)
+- La dirección estética seleccionada
+- Una semilla aleatoria, distinta en cada generación
 
-- **Saneado**: cada número se recorta a su rango válido y cada color se valida como
-  hexadecimal. Si la IA devuelve basura, se usa el valor por defecto.
-- **Ajuste de texto**: se mide el fragmento con la tipografía y el tamaño propuestos.
-  Si no cabe en el formato elegido, baja el tamaño hasta que quepa. Si el fragmento
-  es muy corto, lo sube.
-- **Contraste**: se calcula la relación de luminancia entre el texto y el fondo. Si
-  baja de 3.2, el color del texto se cambia a blanco o casi negro según convenga.
+Con eso arma tres propuestas: **Minimal** (aire y jerarquía), **Cinematic** (la
+portada difuminada de fondo, con viñeta y sombras) y **Experimental** (tipografía
+grande, composición asimétrica, efectos).
 
-Dónde corre la IA: si la app se abre dentro de Claude, usa la capacidad de muestreo
-del propio entorno. En tu despliegue usa `api/design.js`, que necesita
-`ANTHROPIC_API_KEY`. Cada generación consume créditos de esa cuenta, así que tenlo
-en cuenta antes de repartir el enlace.
+La densidad manda sobre el tamaño: un fragmento de una línea llega a 48 px, uno de
+seis baja a 15. Después, la red de seguridad mide el texto de verdad con la
+tipografía propuesta y lo encoge si aún no cabe, y corrige el color si el contraste
+con el fondo baja de 3.2.
 
-Las direcciones estéticas (Auto, Minimal, Dark, Cinematic, Y2K, VHS, Glass,
-Editorial, Phonk, Romantic, Luxury) viajan en el contexto: la IA las respeta pero
-sigue decidiendo la composición por su cuenta.
+Las once direcciones (Auto, Minimal, Dark, Cinematic, Y2K, VHS, Glass, Editorial,
+Phonk, Romantic, Luxury) no son etiquetas: cada una cambia paleta, tipografía,
+pesos, radios, efectos y alineación. Editorial impone serif y alineación izquierda,
+Y2K centra y mete degradados y holográfico, Phonk oscurece y sube el peso a 700,
+Luxury cambia el acento a dorado.
 
-"Aplicar" vuelca el diseño al editor, así que después puedes seguir tocando todo a
-mano. "Regenerar" pide solo esa propuesta de nuevo.
+El JSON que produce el motor pasa por el mismo traductor que convierte parámetros
+en la tarjeta real, así que las miniaturas se dibujan con la función que exporta el
+PNG: lo que ves es lo que se aplica.
+
+`api/design.js` queda en el repositorio como alternativa opcional: si algún día
+quieres que las propuestas las decida un modelo, necesita `ANTHROPIC_API_KEY` y
+consume créditos. No hace falta para que Auto Design funcione.

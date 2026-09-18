@@ -733,8 +733,8 @@
 <div class="overlay" id="adAsk">
   <div class="ov-inner panel" style="max-width:340px">
     <h2>✨ Auto Design</h2>
-    <p class="ask-tx">¿Quieres que la IA te proponga tres diseños para esta canción?
-      Analiza la portada, sus colores, el largo de la letra y el formato.</p>
+    <p class="ask-tx">¿Quieres tres diseños hechos a medida para esta canción?
+      Se arman con los colores de la portada, el largo de la letra y el formato elegido.</p>
     <div class="acts">
       <button type="button" id="adYes" class="magic">Sí, probar</button>
       <button type="button" id="adNo" class="ghost">Ahora no</button>
@@ -1544,7 +1544,7 @@ document.getElementById('coverInput').addEventListener('change',function(e){
 });
 
 /* ===== datos ===== */
-var SRC={mode:'none',sample:null,lyrics:false,genius:false};
+var SRC={mode:'none',sample:null,lyrics:false,genius:false,autoDesign:false};
 (function boot(){
   var done=false,t=setTimeout(function(){if(!done)fallback();},1800);
   fetch('/api/health').then(function(r){return r.ok?r.json():Promise.reject();})
@@ -1552,6 +1552,8 @@ var SRC={mode:'none',sample:null,lyrics:false,genius:false};
       done=true;clearTimeout(t);
       if(j&&j.lyrics)SRC.lyrics=true;
       if(j&&j.genius)SRC.genius=true;
+      if(j&&j.autoDesign)SRC.autoDesign=true;
+      if(typeof revisaAutoDesign==='function')revisaAutoDesign();
       if(j&&j.spotify){SRC.mode='spotify';document.getElementById('search').hidden=false;}
       else fallback();
       if(SRC.lyrics)document.getElementById('fetchLyr').hidden=false;
@@ -1562,6 +1564,7 @@ var SRC={mode:'none',sample:null,lyrics:false,genius:false};
       claude.use('sample').then(function(s){
         if(!s)return;
         SRC.mode='claude';SRC.sample=s;document.getElementById('search').hidden=false;
+        if(typeof revisaAutoDesign==='function')revisaAutoDesign();
       }).catch(function(){});
     }
   }
@@ -2271,41 +2274,156 @@ function adContext(){
     direccion:AD.preset
   };
 }
-function adPrompt(ctx,semilla){
-  return 'Eres director de arte. Diseña 3 tarjetas de letra de canción MUY distintas entre sí.\n'+
-  'Contexto (JSON): '+JSON.stringify(ctx)+'\n'+
-  'Variación pedida: '+semilla+'\n\n'+
-  'Devuelve SOLO un array JSON de 3 objetos, sin markdown ni texto alrededor. Cada objeto:\n'+
-  '{"name":"nombre corto del estilo",\n'+
-  ' "layout":{"stack":"cover-top|cover-bottom","align":"left|center|right","coverSize":0-130,'+
-  '"coverRadius":0-40 o "circle","padX":16-46,"padY":16-54},\n'+
-  ' "type":{"font":"grotesk|bricolage|jakarta|outfit|serif","size":14-54,"weight":300-700,'+
-  '"lineHeight":1.05-1.7,"tracking":-0.06-0.08,"color":"#hex","opacity":0.5-1,"shadow":0-1},\n'+
-  ' "bg":{"mode":"solid|gradient|cover|glass","color1":"#hex","color2":"#hex","angle":0-360,'+
-  '"blur":0-44,"zoom":1-2,"dim":0-0.85,"tint":0-0.8},\n'+
-  ' "effects":{"grain":0-1,"vignette":0-0.85,"glow":0-1,"scan":0-1,"holo":0-1,"bloom":0-1},\n'+
-  ' "frame":{"radius":0-44,"border":0-6,"borderColor":"#hex"}}\n\n'+
-  'Reglas: el primero minimalista y limpio; el segundo cinematográfico usando bg.mode "cover" '+
-  '(portada difuminada de fondo) con viñeta y sombras; el tercero experimental, con tipografía '+
-  'grande, composición asimétrica y efectos. Usa los colores de la portada del contexto. '+
-  'Si hay mucho texto, baja el tamaño de fuente; si hay poco, súbelo. '+
-  'Asegura contraste alto entre el color del texto y el fondo. No inventes ni cambies la letra.';
+/* ---------- motor generativo local: decide la composición sin depender de nadie ---------- */
+function rng(semilla){                        // aleatorio reproducible
+  var t=0;
+  for(var i=0;i<semilla.length;i++)t=(t*31+semilla.charCodeAt(i))>>>0;
+  return function(){
+    t+=0x6D2B79F5;
+    var r=Math.imul(t^t>>>15,1|t);
+    r^=r+Math.imul(r^r>>>7,61|r);
+    return ((r^r>>>14)>>>0)/4294967296;
+  };
 }
+function entre(R,a,b){return a+(b-a)*R();}
+function elige(R,arr){return arr[Math.floor(R()*arr.length)|0];}
 
-function adCall(ctx,semilla){
-  var prompt=adPrompt(ctx,semilla);
-  if(SRC.sample){
-    return SRC.sample.json([{role:'user',content:prompt}],{modelTier:'balanced'});
+/* mueve un color de la paleta en tono, saturación y luz */
+function tweak(hex,dh,ds,dl){
+  var c=hex2hsl(hex);
+  return toHex(c[0]+dh, Math.min(1,Math.max(0,c[1]+ds)), Math.min(1,Math.max(0,c[2]+dl)));
+}
+function claro(hex){return lumHex(hex)>.5;}
+function sobre(fondo){return claro(fondo)?'#141019':'#ffffff';}
+
+/* cada dirección estética ajusta las decisiones del generador */
+var DIR={
+  auto:{},
+  minimal:{fx:0,peso:[400,500],grande:.85,marco:1,fondos:['solid','glass']},
+  dark:{luz:-.14,fx:.3,peso:[500,700],fondos:['solid','gradient'],vin:.5},
+  cinematic:{fondos:['cover'],vin:.55,fx:.5,peso:[500,600]},
+  y2k:{fondos:['gradient'],holo:1,radio:[30,44],peso:[600,700],centro:true,fx:.6},
+  vhs:{fondos:['cover','gradient'],scan:1,grano:.9,vin:.45,peso:[500,700]},
+  glass:{fondos:['glass'],fx:.25,radio:[24,36],peso:[500,600]},
+  editorial:{fuente:'serif',peso:[400,400],fondos:['solid'],fx:.1,marco:1,radio:[2,10],izq:true},
+  phonk:{luz:-.22,sat:.15,fondos:['solid','cover'],grano:1,vin:.7,peso:[700,700],grande:1.15},
+  romantic:{luz:.2,sat:-.1,fuente:'serif',centro:true,fx:.35,radio:[26,40],peso:[400,500]},
+  luxury:{luz:-.12,fuente:'serif',marco:2,radio:[4,14],fx:.2,peso:[400,500],dorado:true}
+};
+
+function localDesigns(ctx,semilla,soloUno){
+  var R=rng(semilla+'|'+ctx.cancion+'|'+ctx.letra_caracteres+'|'+ctx.formato);
+  var d=DIR[AD.preset]||{};
+  var pal=ctx.portada;
+  var hayPortada=pal.hay;
+
+  // el texto manda: mucha letra pide sobriedad, poca permite jugar
+  var densidad=Math.min(1,(ctx.letra_caracteres/210+ctx.letra_lineas/7)/2);
+  var holgura=1-densidad;                          // 1 = mucho aire
+
+  var base={
+    oscuro:tweak(pal.fondo_oscuro,0,d.sat||0,d.luz||0),
+    medio:tweak(pal.medio,0,d.sat||0,(d.luz||0)*.6),
+    vivo:tweak(pal.vivo,0,0,0),
+    claro:tweak(pal.claro,0,0,0),
+    segundo:tweak(pal.secundario,0,0,0)
+  };
+  if(d.dorado){base.vivo=toHex(42,.72,.62);base.claro=toHex(45,.55,.8);}
+
+  function tam(mult){                              // tamaño de fuente según densidad
+    var t=(18+holgura*26)*(d.grande||1)*mult;
+    if(ctx.letra_caracteres===0)t=30;
+    return Math.round(Math.min(52,Math.max(15,t)));
   }
-  return fetch('/api/design',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:prompt})
-  }).then(function(r){
-    if(!r.ok)return r.json().then(function(j){throw new Error(j.error||('HTTP '+r.status));});
-    return r.json();
-  }).then(function(j){return j.designs||j;});
-}
+  function fuente(pref){
+    if(d.fuente)return d.fuente;
+    return pref||elige(R,['grotesk','bricolage','jakarta','outfit','serif']);
+  }
+  function alineacion(preferido){
+    if(d.centro)return 'center';
+    if(d.izq)return 'left';
+    return preferido;
+  }
+  function radio(def){
+    return d.radio?Math.round(entre(R,d.radio[0],d.radio[1])):def;
+  }
+  var fx=d.fx==null?.5:d.fx;
 
+  /* --- 1. Minimal: aire, jerarquía y nada más --- */
+  function minimal(){
+    var fondo=elige(R,(d.fondos||['solid','glass']));
+    var col=elige(R,[base.oscuro,tweak(base.oscuro,0,-.2,.04),tweak(base.medio,0,-.3,-.12)]);
+    var texto=sobre(col);
+    return {
+      name:elige(R,['Minimal','Silencio','Papel en blanco','Aire']),
+      layout:{stack:'cover-top',align:alineacion('left'),
+        coverSize:Math.round(entre(R,40,52)),coverRadius:elige(R,[10,14,'circle']),
+        padX:Math.round(entre(R,26,36)),padY:Math.round(entre(R,26,38))},
+      type:{font:fuente('jakarta'),size:tam(.86),weight:elige(R,d.peso||[400,500]),
+        lineHeight:+(1.32+holgura*.14).toFixed(2),tracking:-0.025,
+        color:texto,opacity:1,shadow:.15},
+      bg:{mode:fondo,color1:col,color2:tweak(col,0,0,-.05),angle:160},
+      effects:{grain:.18*fx+(d.grano||0)*.3,vignette:0,glow:0,scan:0,holo:0,bloom:0},
+      frame:{radius:radio(26),border:d.marco||1,borderColor:hexa(texto,.16)}
+    };
+  }
+
+  /* --- 2. Cinematic: la portada es el escenario --- */
+  function cinematic(){
+    var usaPortada=hayPortada&&(!d.fondos||d.fondos.indexOf('cover')>-1||R()<.5);
+    var texto='#ffffff';
+    return {
+      name:elige(R,['Cinematic','Claroscuro','Fuera de foco','Escena']),
+      layout:{stack:elige(R,['cover-bottom','cover-top']),align:alineacion('left'),
+        coverSize:Math.round(entre(R,44,64)),coverRadius:elige(R,[8,12,16]),
+        padX:Math.round(entre(R,24,32)),padY:Math.round(entre(R,26,40))},
+      type:{font:fuente('grotesk'),size:tam(1),weight:elige(R,d.peso||[500,600]),
+        lineHeight:+(1.26+holgura*.1).toFixed(2),tracking:-0.03,
+        color:texto,opacity:.97,shadow:.8},
+      bg:usaPortada
+        ?{mode:'cover',blur:Math.round(entre(R,14,30)),zoom:+entre(R,1.15,1.5).toFixed(2),
+          dim:+entre(R,.38,.6).toFixed(2),color1:base.oscuro,color2:base.oscuro,tint:.3}
+        :{mode:'gradient',color1:tweak(base.medio,0,0,-.1),color2:base.oscuro,
+          angle:Math.round(entre(R,120,220))},
+      effects:{grain:.25*fx+(d.grano||0)*.4,vignette:d.vin||(.34+.3*fx),
+        glow:.15*fx,scan:(d.scan||0)*.7,holo:0,bloom:.2*fx},
+      frame:{radius:radio(20),border:0,borderColor:'#ffffff'}
+    };
+  }
+
+  /* --- 3. Experimental: tipografía grande y composición rota --- */
+  function experimental(){
+    var modo=elige(R,(d.fondos||['gradient','solid','cover']));
+    var c1=elige(R,[base.vivo,base.claro,base.segundo]);
+    var c2=elige(R,[base.oscuro,tweak(base.segundo,40,0,-.2),tweak(base.vivo,60,0,-.3)]);
+    var fondoRef=modo==='gradient'?(claro(c1)&&claro(c2)?c1:c2):c2;
+    var texto=d.dorado?base.claro:sobre(fondoRef);
+    var ocultaPortada=holgura>.45&&R()<.35;
+    return {
+      name:elige(R,['Experimental','Ruido','Cartelera','Fuera de eje','Sobreexpuesto']),
+      layout:{stack:elige(R,['cover-bottom','cover-top']),
+        align:alineacion(elige(R,['left','center','right'])),
+        coverSize:ocultaPortada?0:Math.round(entre(R,56,110)),
+        coverRadius:elige(R,[0,4,'circle']),
+        padX:Math.round(entre(R,18,30)),padY:Math.round(entre(R,20,34))},
+      type:{font:fuente('bricolage'),size:tam(1.18),weight:elige(R,d.peso||[600,700]),
+        lineHeight:+(1.05+holgura*.16).toFixed(2),tracking:+(-0.05+R()*.03).toFixed(3),
+        color:texto,opacity:1,shadow:.3},
+      bg:{mode:modo,color1:c1,color2:c2,angle:Math.round(entre(R,20,340)),
+        blur:Math.round(entre(R,8,26)),zoom:+entre(R,1.1,1.6).toFixed(2),
+        dim:+entre(R,.3,.55).toFixed(2),tint:+entre(R,.2,.5).toFixed(2)},
+      effects:{grain:(d.grano||.35)*fx+.2,vignette:(d.vin||.2)*fx,
+        glow:R()<.4?.5*fx:0,scan:(d.scan||(R()<.3?.6:0)),
+        holo:(d.holo||(R()<.25?.8:0)),bloom:R()<.5?.6*fx:0},
+      frame:{radius:radio(elige(R,[0,8,34])),
+        border:elige(R,[0,0,2,d.marco||0]),borderColor:hexa(texto,.5)}
+    };
+  }
+
+  var fabrica=[minimal,cinematic,experimental];
+  if(soloUno!=null)return [fabrica[soloUno%3]()];
+  return fabrica.map(function(f){return f();});
+}
 
 /* ---------- interfaz de Auto Design ---------- */
 var adOv=document.getElementById('adOv'),adAsk=document.getElementById('adAsk'),
@@ -2371,27 +2489,30 @@ function generar(soloUno){
   var timer=pasos();
   var semilla=(soloUno!=null?'regenera solo la propuesta '+(soloUno+1)+', distinta a la anterior. ':'')
     +'variación '+Math.random().toString(36).slice(2,7);
-  adCall(adContext(),semilla).then(function(r){
-    var arr=Array.isArray(r)?r:(r&&(r.designs||r.results))||[];
-    arr=arr.filter(function(d){return d&&typeof d==='object';});
-    if(!arr.length)throw new Error('respuesta vacía');
+  new Promise(function(ok){
+    setTimeout(function(){                       // un respiro para que se lean los pasos
+      ok(localDesigns(adContext(),semilla,soloUno));
+    },700);
+  }).then(function(arr){
+    if(!arr.length)throw new Error('sin propuestas');
     if(soloUno!=null&&AD.designs.length===3){
-      AD.designs[soloUno]=arr[soloUno]||arr[0];
+      AD.designs[soloUno]=arr[0];
     } else {
       AD.designs=arr.slice(0,3);
     }
     pintaPropuestas();
   }).catch(function(e){
     adErr.hidden=false;
-    adErr.textContent=(SRC.sample||window.location.hostname)
-      ? 'No se pudieron generar los diseños. '+(e&&e.message||'')
-      : 'Auto Design necesita la IA configurada.';
+    adErr.textContent=(e&&e.message)||'No se pudieron generar los diseños.';
   }).then(function(){
     clearInterval(timer);adLoad.hidden=true;adGen.disabled=false;AD.busy=false;
   });
 }
+function revisaAutoDesign(){
+  adGen.disabled=false;adErr.hidden=true;adErr.textContent='';
+}
 adGen.addEventListener('click',function(){generar();});
-btnAuto.addEventListener('click',function(){adOv.classList.add('on');});
+btnAuto.addEventListener('click',function(){adOv.classList.add('on');revisaAutoDesign();});
 document.getElementById('adClose').addEventListener('click',function(){adOv.classList.remove('on');});
 adOv.addEventListener('click',function(e){if(e.target===this)this.classList.remove('on');});
 document.getElementById('adYes').addEventListener('click',function(){
